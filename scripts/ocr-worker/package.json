@@ -1,0 +1,16 @@
+{
+  "name": "unicc-ocr-worker",
+  "version": "1.0.0",
+  "description": "Local Ollama OCR Worker for UniCC",
+  "main": "index.ts",
+  "scripts": {
+    "start": "tsx index.ts",
+    "dev": "tsx --watch index.ts"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3",
+    "tsx": "^4.6.2"
+  }
+}
