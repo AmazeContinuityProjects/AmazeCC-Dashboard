@@ -1,7 +1,9 @@
 'use client';
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 
-export default function LoginForm() {
+export default function LoginForm({ onAuthenticated }: { onAuthenticated?: () => void }) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -12,17 +14,18 @@ export default function LoginForm() {
     setError('');
 
     try {
-      const res = await fetch('/api/admin/auth', {
+      const res = await apiFetch('/api/admin/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json();
-      if (data.success) {
-        window.location.reload();
+      if (data.success && data.token) {
+        localStorage.setItem('admin_token', data.token);
+        onAuthenticated?.();
       } else {
-        setError(data.message || 'Authentication failed');
+        setError(data.error || data.message || 'Authentication failed');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -43,6 +46,20 @@ export default function LoginForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            VTOP ID
+          </label>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 midnight:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+            placeholder="Enter admin VTOP ID"
+            required
+          />
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Password

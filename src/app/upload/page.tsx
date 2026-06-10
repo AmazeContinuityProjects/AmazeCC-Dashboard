@@ -8,7 +8,7 @@ import {
     DropzoneContent,
     DropzoneEmptyState,
 } from "@/components/ui/shadcn-io/dropzone";
-import { API_BASE } from "@/components/custom/Main";
+import { API_BASE } from "@/lib/api";
 import LoginFooter from "@/components/custom/footer/LoginFooter";
 
 export default function UploadPage() {
