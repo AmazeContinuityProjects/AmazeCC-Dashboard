@@ -13,11 +13,12 @@ interface BusRoute {
 
 interface AdminDashboardProps {
   activeTab: string;
+  activeSubTab: string;
   setActiveTab: (tab: string) => void;
   onLogout: () => void;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeTab, onLogout }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeTab, activeSubTab, onLogout }) => {
   const [buses, setBuses] = useState<BusRoute[]>([]);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
