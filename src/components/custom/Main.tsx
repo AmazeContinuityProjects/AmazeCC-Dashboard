@@ -1,758 +1,144 @@
 'use client';
 import { useState, useEffect } from "react";
-import { ReloadModal } from "./reloadModel";
-import LoginForm from "./loginForm";
-import DashboardContent from "./Dashboard";
-import LoginFooter from "./footer/LoginFooter";
-import config from "../../../config.json";
-import { attendanceRes, ODListItem, ODListRaw } from "@/types/data/attendance";
-import { AllGradesRes } from "@/types/data/allgrades";
-import { loadActivityTree, saveActivityTree } from "@/lib/activit-tree";
-import demoData from '../../app/demoData.json';
 import { AnimatePresence, motion } from "framer-motion";
-import { syncMarksDiff } from "@/lib/marksSync";
-
-export const API_BASE = "https://api.uni-cc.site";
-
-type settings = {
-  decimalValues: boolean;
-  CGPAHidden: boolean;
-  attendancePercentageOrString: "percentage" | "str";
-  currSemesterID: string;
-  calendarType: "ALL" | "ALL02" | "ALL03" | "ALL05" | "ALL06" | "ALL08" | "ALL11" | "WEI";
-  loadingScreen: boolean;
-  isDayscholarWithBus: boolean;
-  residentialStatus?: "hosteller" | "dayscholar";
-  friendlyName?: string;
-}
-
-type IDs = {
-  VtopUsername: string;
-  VtopPassword: string;
-  MoodleUsername: string;
-  MoodlePassword: string;
-}
-
-const defaultSettings: settings = {
-  decimalValues: false,
-  CGPAHidden: false,
-  attendancePercentageOrString: "percentage",
-  currSemesterID: config.semesterIDs[config.semesterIDs.length - 2],
-  calendarType: "ALL",
-  loadingScreen: false,
-  isDayscholarWithBus: false,
-  residentialStatus: "hosteller",
-  friendlyName: ""
-};
-
-const defaultIDs: IDs = {
-  VtopUsername: "",
-  VtopPassword: "",
-  MoodleUsername: "",
-  MoodlePassword: "",
-}
+import { apiFetch } from "@/lib/api";
+import AdminDashboard from "@/components/custom/dayscholar/AdminDashboard";
+import AdminLayout from "@/components/custom/admin/AdminLayout";
 
 export default function LoginPage() {
-  // --- State Management ---
-  const [IDs, setIDs] = useState<IDs>(defaultIDs);
-  const [message, setMessage] = useState<string>("");
-  const [attendanceData, setAttendanceData] = useState<attendanceRes | null>({});
-  const [marksData, setMarksData] = useState<object>({});
-  const [GradesData, setGradesData] = useState<object>({});
-  const [AllGradesData, setAllGradesData] = useState<AllGradesRes>({});
-  const [ScheduleData, setScheduleData] = useState<object>({});
-  const [hostelData, sethostelData] = useState<object>({});
-  const [Calender, setCalender] = useState<object>({});
-  const [activeDay, setActiveDay] = useState<string>("");
-  const [isReloading, setIsReloading] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("attendance");
-  const [attendancePercentage, setattendancePercentage] = useState<object>({});
-  const [ODhoursData, setODhoursData] = useState<object>({});
-  const [ODhoursIsOpen, setODhoursIsOpen] = useState<boolean>(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [GradesDisplayIsOpen, setGradesDisplayIsOpen] = useState<boolean>(false);
-  const [activeSubTab, setActiveSubTab] = useState<string>("overview");
-  const [HostelActiveSubTab, setHostelActiveSubTab] = useState<string>("mess");
-  const [activeAttendanceSubTab, setActiveAttendanceSubTab] = useState<string>("attendance");
-  const [activeDayscholarSubTab, setActiveDayscholarSubTab] = useState<string>("finder");
-  const [activeQBankSubTab, setActiveQBankSubTab] = useState<string>("archive");
-  const [activeMoreSubTab, setActiveMoreSubTab] = useState<string>("social");
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [progressBar, setProgressBar] = useState<number>(0);
-  const [moodleData, setMoodleData] = useState([]);
-  const [vitolData, setVitolData] = useState([]);
-  const [isAPIworking, setIsAPIworking] = useState<boolean>(false);
-  const [demoMode, setDemoMode] = useState<boolean>(false);
-  const [settings, setSettings] = useState<settings>(defaultSettings);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('qbank');
 
   useEffect(() => {
-    const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
-    setActiveDay(day);
-
-    const checkAPIStatus = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/status`);
-        const data = await res.json();
-        setIsAPIworking(data.text === "API is working" ? false : true);
-      } catch (err) {
-        setIsAPIworking(true);
-      }
-    }
-    checkAPIStatus();
+    setIsAuthenticated(Boolean(localStorage.getItem("admin_token")));
+    setIsCheckingAuth(false);
   }, []);
 
-  function setAttendanceAndOD(attendance: attendanceRes): void {
-    setAttendanceData(attendance);
-    
-    // Check for dynamic OD changes (Present -> OD = Wasted) (OD -> Present = Recovered)
-    const prevAttRaw = localStorage.getItem("attendance");
-    if (prevAttRaw) {
-      try {
-        const prevAttRes: attendanceRes = JSON.parse(prevAttRaw);
-        const trackerRaw = localStorage.getItem("wastedODsTracker");
-        const tracker = trackerRaw ? JSON.parse(trackerRaw) : {};
-        let trackerUpdated = false;
-
-        attendance.attendance?.forEach(newCourse => {
-          const oldCourse = prevAttRes.attendance?.find(c => c.courseCode === newCourse.courseCode);
-          if (oldCourse && Array.isArray(oldCourse.viewLink) && Array.isArray(newCourse.viewLink)) {
-            newCourse.viewLink.forEach((newDay: any) => {
-              const oldDay = (oldCourse.viewLink as any[]).find((d: any) => d.date === newDay.date);
-              if (oldDay) {
-                const oldStatus = oldDay.status.toLowerCase();
-                const newStatus = newDay.status.toLowerCase();
-
-                if (!tracker[newDay.date]) tracker[newDay.date] = {};
-
-                if (oldStatus === "present" && (newStatus === "on duty" || newStatus === "partial od")) {
-                  tracker[newDay.date][newCourse.courseCode] = {
-                    courseTitle: newCourse.courseTitle,
-                    type: newCourse.courseType,
-                    slotName: newCourse.slotName,
-                    status: "wasted"
-                  };
-                  trackerUpdated = true;
-                } else if ((oldStatus === "on duty" || oldStatus === "partial od") && newStatus === "present") {
-                  if (tracker[newDay.date][newCourse.courseCode] && tracker[newDay.date][newCourse.courseCode].status === "wasted") {
-                    tracker[newDay.date][newCourse.courseCode].status = "recovered";
-                    trackerUpdated = true;
-                  }
-                }
-              }
-            });
-          }
-        });
-
-        if (trackerUpdated) {
-          localStorage.setItem("wastedODsTracker", JSON.stringify(tracker));
-        }
-      } catch (e) {
-        console.error("Error comparing attendance states:", e);
-      }
-    }
-    let totalClass = 0;
-    let attendedClasses = 0;
-    attendance.attendance?.forEach(course => {
-      totalClass += course.totalClasses || 0;
-      attendedClasses += course.attendedClasses || 0;
-    });
-    setattendancePercentage({ "percentage": Math.round(attendedClasses * 10000 / totalClass) / 100, "str": `${attendedClasses}/${totalClass}` });
-
-    let ODList: ODListRaw = {};
-    attendance.attendance.forEach(course => {
-      if (!course.viewLink || !Array.isArray(course.viewLink)) return;
-
-      course.viewLink.forEach(day => {
-        if (day.status === "On Duty") {
-          if (!ODList[day.date]) {
-            ODList[day.date] = [];
-          }
-          let hours = course.slotName.startsWith("L") ? 2 : 1;
-          ODList[day.date].push({
-            title: course.courseTitle,
-            type: course.slotName.startsWith("L") ? "LAB" : "TH",
-            hours
-          });
-        }
-      });
-    });
-    const formattedList: ODListItem[] = Object.entries(ODList)
-      .map(([date, courses]) => ({
-        date,
-        courses,
-        total: courses.reduce((sum, c) => sum + c.hours, 0)
-      }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    setODhoursData(formattedList);
-  }
-
-  // --- Effects ---
-  useEffect(() => {
-    const storedAttendance = localStorage.getItem("attendance");
-    const storedMarks = localStorage.getItem("marks");
-    const storedGrades = localStorage.getItem("grades");
-    const storedAllGrades = localStorage.getItem("allGrades");
-    const storedUsername = localStorage.getItem("username");
-    const storedPassword = localStorage.getItem("password");
-    const storedMoodleUsername = localStorage.getItem("moodle_username");
-    const storedMoodlePassword = localStorage.getItem("moodle_password");
-    const storedSchedule = localStorage.getItem("schedule");
-    const storedHoste = localStorage.getItem("hostel");
-    const calendar = localStorage.getItem("calender");
-    const MoodleData = localStorage.getItem("moodleData");
-    const VitolData = localStorage.getItem("vitolData");
-    const settings = localStorage.getItem("settings");
-    const IDs = localStorage.getItem("IDs");
-
-    const parsedStoredAttendance: attendanceRes | null = storedAttendance ? JSON.parse(storedAttendance) : null;
-    if (parsedStoredAttendance && parsedStoredAttendance.attendance) {
-      setAttendanceAndOD(parsedStoredAttendance);
-    }
-    if (storedMarks) setMarksData(JSON.parse(storedMarks));
-    if (storedSchedule) setScheduleData(JSON.parse(storedSchedule));
-    if (storedGrades) setGradesData(JSON.parse(storedGrades));
-    if (storedAllGrades) setAllGradesData(JSON.parse(storedAllGrades));
-    if (storedHoste) sethostelData(JSON.parse(storedHoste));
-    if (calendar) setCalender(JSON.parse(calendar));
-    if (MoodleData) setMoodleData(JSON.parse(MoodleData));
-    if (VitolData) setVitolData(JSON.parse(VitolData));
-    setIDs({
-      VtopUsername: storedUsername || "",
-      VtopPassword: storedPassword || "",
-      MoodleUsername: storedMoodleUsername || "",
-      MoodlePassword: storedMoodlePassword || ""
-    })
-    if (IDs) setIDs(JSON.parse(IDs));
-    if (settings) {
-      const parsedSettings = JSON.parse(settings);
-      setSettings({
-        ...defaultSettings,
-        ...parsedSettings
-      });
-    }
-    setIsLoggedIn((storedUsername && storedPassword) || (JSON.parse(IDs)?.VtopUsername && JSON.parse(IDs)?.VtopPassword) ? true : false);
-    setTimeout(() => setIsLoading(false), 300);
-  }, []);
-
-  const loginToVTOP = async (retry = false) => {
-    try {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      setProgressBar(10);
-      setMessage("Logging in and fetching data...");
-      const loginRes = await fetch(`${API_BASE}/api/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: IDs.VtopUsername,
-          password: IDs.VtopPassword
-        }),
-      });
-
-      const data = await loginRes.json();
-
-      if (data.message?.includes("Invalid Captcha") && !retry) {
-        console.warn("Invalid Captcha. Retrying once...");
-        return await loginToVTOP(true);
-      }
-
-      if (!data.success || !data.authorizedID || !data.cookies)
-        throw new Error(data.message || "Login failed.");
-
-      setMessage((prev) => prev + "\n✅ Login successful");
-      setProgressBar((prev) => prev + 30);
-
-      return {
-        cookies: data.cookies,
-        authorizedID: data.authorizedID,
-        csrf: data.csrf,
-      };
-    } catch (err: any) {
-      throw err;
-    }
-  };
-
-  const handleLogin = async (currSemesterID = config.semesterIDs[config.semesterIDs.length - 2]) => {
-    try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-      localStorage.setItem("IDs", JSON.stringify(IDs));
-
-      const [
-        { attRes, marksRes },
-        gradesRes,
-        ScheduleRes,
-        HostelRes,
-        calenderRes,
-        allGradesRes
-      ] = await Promise.all([
-        fetch(`${API_BASE}/api/attendance`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: currSemesterID }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Attendance/Marks fetched");
-          setProgressBar(prev => prev + 10);
-          return j;
-        }),
-
-        fetch(`${API_BASE}/api/grades`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: currSemesterID }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Grades fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }),
-
-        fetch(`${API_BASE}/api/schedule`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: currSemesterID }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Exam schedule fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }),
-
-        fetch(`${API_BASE}/api/hostel`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Hostel details fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }),
-
-        fetch(`${API_BASE}/api/calendar`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cookies: cookies,
-            authorizedID, csrf,
-            type: settings.calendarType || "ALL",
-            semesterId: currSemesterID
-          }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Calendar fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }),
-        fetch(`${API_BASE}/api/all-grades`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ All grades fetched");
-          setProgressBar(prev => prev + 10);
-          return j;
-        }),
-      ]);
-
-      setMessage(prev => prev + "\nFinalizing and saving data...");
-
-      setAttendanceAndOD(attRes);
-      setMarksData(marksRes);
-      setGradesData(gradesRes);
-      setAllGradesData(allGradesRes);
-      setScheduleData(ScheduleRes);
-      sethostelData(HostelRes);
-      setCalender(calenderRes);
-
-      const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
-      syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
-
-      localStorage.setItem("attendance", JSON.stringify(attRes));
-      localStorage.setItem("marks", JSON.stringify(marksRes));
-      localStorage.setItem("grades", JSON.stringify(gradesRes));
-      localStorage.setItem("allGrades", JSON.stringify(allGradesRes));
-      localStorage.setItem("schedule", JSON.stringify(ScheduleRes));
-      localStorage.setItem("hostel", JSON.stringify(HostelRes));
-      localStorage.setItem("calender", JSON.stringify(calenderRes));
-
-      setMessage(prev => prev + "\n✅ All data loaded successfully!");
-      setProgressBar(100);
-      setIsLoggedIn(true);
-      setIsReloading(false);
-
-      const tree = loadActivityTree();
-      tree.increment();
-      saveActivityTree(tree);
-
-      return true;
-    } catch (err) {
-      console.error(err);
-      setMessage(
-        "❌ " + (err instanceof Error ? err.message : "Login failed")
-      );
-      setProgressBar(0);
-      throw err;
-    }
-  };
-
-  // --- Event Handlers ---
-  const handleReloadRequest = async () => {
-    setIsReloading(true);
-    setProgressBar(10);
-    setMessage("Reloading data...");
-    localStorage.setItem("IDs", JSON.stringify(IDs));
-
-    try {
-      if ((settings as any).reloadAllData) {
-        await handleLogin(settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]);
-        return;
-      }
-
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-
-      const coreTask = fetch(`${API_BASE}/api/attendance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cookies,
-          authorizedID,
-          csrf,
-          semesterId: settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2],
-        }),
-      }).then(async r => {
-        const { attRes, marksRes } = await r.json();
-        setAttendanceAndOD(attRes);
-        setMarksData(marksRes);
-        const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
-        syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
-        localStorage.setItem("attendance", JSON.stringify(attRes));
-        localStorage.setItem("marks", JSON.stringify(marksRes));
-        setMessage(prev => prev + "\n✅ Attendance & Marks fetched");
-        setProgressBar(prev => prev + 30);
-      });
-
-      const tasks: Promise<void>[] = [coreTask];
-      const moodleUsername = IDs.MoodleUsername;
-      const moodlePassword = IDs.MoodlePassword;
-
-      if (moodleUsername && moodlePassword) {
-        tasks.push(
-          (async () => {
-            const res = await fetch(`${API_BASE}/api/lms-data`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                username: moodleUsername,
-                pass: moodlePassword,
-              }),
-            });
-
-            const moodleData = await res.json();
-            const prevData = JSON.parse(localStorage.getItem("moodleData") || "[]");
-
-            const merged = moodleData.map(item => {
-              const prevItem = prevData.find(p => p.url === item.url);
-              return {
-                ...item,
-                hidden: prevItem?.hidden ?? false,
-              };
-            });
-
-            setMoodleData(merged);
-            localStorage.setItem("moodleData", JSON.stringify(merged));
-            setMessage(prev => prev + "\n✅ Moodle data fetched");
-            setProgressBar(prev => prev + 20);
-          })()
-        );
-      }
-
-      // tasks.push(
-      //   (async () => {
-      //     const res = await fetch(`${API_BASE}/api/grades`, {
-      //       method: "POST",
-      //       headers: { "Content-Type": "application/json" },
-      //       body: JSON.stringify({ cookies, authorizedID, csrf, semesterId: settings.currSemesterID }),
-      //     });
-      //     const GradesData = await res.json();
-      //     setGradesData(GradesData);
-      //     localStorage.setItem("grades", JSON.stringify(GradesData));
-      //     setMessage(prev => prev + "\n✅ Grades data fetched");
-      //     setProgressBar(prev => prev + 20);
-      //   })()
-      // )
-
-      // tasks.push(
-      //   (async () => {
-      //     const res = await fetch(`${API_BASE}/api/schedule`, {
-      //       method: "POST",
-      //       headers: { "Content-Type": "application/json" },
-      //       body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2] }),
-      //     })
-      //     const scheduleData = await res.json();
-      //     setScheduleData(scheduleData);
-      //     localStorage.setItem("schedule", JSON.stringify(scheduleData));
-      //     setMessage(prev => prev + "\n✅ Schedule data fetched");
-      //     setProgressBar(prev => prev + 20);
-      //   })()
-      // )
-      await Promise.all(tasks);
-
-      setProgressBar(100);
-      setIsLoggedIn(true);
-      setIsReloading(false);
-
-    } catch (err) {
-      console.error(err);
-      setMessage(
-        "❌ " + (err instanceof Error ? err.message : "Login failed")
-      );
-      setProgressBar(0);
-    }
-  };
-
-  const handleLogOutRequest = () => {
-    setIsLoggedIn(false);
-    setIDs(defaultIDs);
-
-    const keysToKeep = ["theme", "activityTree", "settings"];
-
-    const saved: Record<string, string | null> = {};
-    keysToKeep.forEach((key) => {
-      saved[key] = localStorage.getItem(key);
-    });
-
-    localStorage.clear();
-
-    keysToKeep.forEach((key) => {
-      if (saved[key] !== null) {
-        localStorage.setItem(key, saved[key]!);
-      }
-    });
-
-    setAttendanceData({});
-    setMarksData({});
-    setGradesData({});
-    setScheduleData({});
-    setMessage("");
-  };
-
-  const handleFormSubmit = (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!IDs.VtopUsername || !IDs.VtopPassword) {
-      return alert("Please fill all the fields!");
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const res = await apiFetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.token) {
+        localStorage.setItem('admin_token', data.token);
+        setIsAuthenticated(true);
+      } else {
+        setError(data.error || data.message || 'Authentication failed');
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    handleLogin();
   };
 
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const handleLogout = () => {
+    localStorage.removeItem("admin_token");
+    setIsAuthenticated(false);
+  };
 
-  useEffect(() => {
-    const goOffline = () => setIsOffline(true);
-    const goOnline = () => setIsOffline(false);
-
-    window.addEventListener("offline", goOffline);
-    window.addEventListener("online", goOnline);
-
-    return () => {
-      window.removeEventListener("offline", goOffline);
-      window.removeEventListener("online", goOnline);
-    };
-  }, []);
-
-  const handleDemoClick = () => {
-    setDemoMode(true);
-    setIDs({
-      VtopUsername: demoData.username,
-      VtopPassword: demoData.password,
-      MoodleUsername: "",
-      MoodlePassword: ""
-    });
-
-    setSettings(defaultSettings);
-    setAttendanceData(demoData.attendance);
-    setMarksData(demoData.marks);
-    setGradesData(demoData.grades);
-    setAllGradesData(demoData.allGrades);
-    setScheduleData(demoData.schedule);
-    sethostelData(demoData.hostel);
-    setCalender(demoData.calender);
-    setIsLoggedIn(true);
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 midnight:bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-transparent border-blue-500"></div>
+      </div>
+    );
   }
 
-  const [showReloadBanner, setShowReloadBanner] = useState(false);
-
-  useEffect(() => {
-    let timer;
-
-    if (isReloading) {
-      setShowReloadBanner(true);
-    } else {
-      timer = setTimeout(() => {
-        setShowReloadBanner(false);
-      }, 500);
-    }
-
-    return () => clearTimeout(timer);
-  }, [isReloading]);
-
-  if (isLoading) {
+  if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 midnight:bg-black">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-transparent border-gray-500"></div>
-          <p className="text-gray-600 dark:text-gray-300">Loading app...</p>
+      <motion.div
+        className="min-h-screen bg-gray-50 dark:bg-gray-900 midnight:bg-black flex items-center justify-center p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="w-full max-w-md bg-white dark:bg-slate-800 midnight:bg-gray-900 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700 midnight:border-gray-800 p-8">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
+              Admin Portal
+            </h2>
+            <p className="text-sm text-gray-500 mt-2">
+              Enter your VTOP credentials to access the admin dashboard.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                VTOP ID
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 midnight:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                placeholder="Enter admin VTOP ID"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 midnight:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm text-center">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors shadow-md disabled:bg-gray-400"
+            >
+              {isLoading ? 'Authenticating...' : 'Login'}
+            </button>
+          </form>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
     <motion.div
       className="min-h-screen bg-gray-50 dark:bg-gray-900 midnight:bg-black flex flex-col text-gray-900 dark:text-gray-100 midnight:text-gray-100 transition-colors"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
     >
-      {isAPIworking && !isOffline && (
-        <div className="top-0 left-0 w-full bg-yellow-500 text-black text-center py-2 font-medium">
-          ⚠️ Unable to connect to API services. Please check back later. ⚠️
-        </div>
-      )}
-      <motion.div layout>
-        <AnimatePresence>
-          {showReloadBanner && (
-            settings.loadingScreen ? (
-              <ReloadModal
-                message={message}
-                onClose={() => setIsReloading(false)}
-                progressBar={progressBar}
-              />
-            ) : (
-              <motion.div
-                layout
-                initial={{ opacity: 0, y: -40 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -40 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-                className="w-full z-50 bg-blue-500 text-white shadow-lg"
-              >
-                <div className="flex flex-col items-center justify-center py-2 px-4 text-sm font-medium">
-                  <span className="whitespace-pre-wrap">{message}</span>
-
-                  {progressBar !== undefined && (
-                    <div className="w-full max-w-xl mt-2 h-2 bg-blue-300/40 rounded overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progressBar}%` }}
-                        transition={{ duration: 0.3 }}
-                        className="h-full bg-blue-100"
-                      />
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {(!isLoggedIn && !demoMode) && (
-        <div className="flex-grow flex items-center justify-center p-4">
-          <LoginForm
-            username={IDs.VtopUsername}
-            setUsername={(val: string) =>
-              setIDs(prev => ({ ...prev, VtopUsername: val }))
-            }
-            password={IDs.VtopPassword}
-            setPassword={(val: string) =>
-              setIDs(prev => ({ ...prev, VtopPassword: val }))
-            }
-            message={message}
-            handleFormSubmit={handleFormSubmit}
-            progressBar={progressBar}
-            handleDemoClick={handleDemoClick}
-            residentialStatus={settings.residentialStatus || "hosteller"}
-            setResidentialStatus={(val: "hosteller" | "dayscholar") => {
-              setSettings(prev => ({ ...prev, residentialStatus: val }));
-              localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: val }));
-            }}
-            isDayscholarWithBus={settings.isDayscholarWithBus || false}
-            setIsDayscholarWithBus={(val: boolean) => {
-              setSettings(prev => ({ ...prev, isDayscholarWithBus: val }));
-              localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }));
-            }}
-          />
-        </div>
-      )}
-
-      {(isLoggedIn || demoMode) && (
-        <>
-          {isOffline && <div className="top-0 left-0 w-full bg-yellow-500 text-black text-center py-2 font-medium">
-            ⚠️ You’re currently offline. Some features may not work.
-          </div>}
-          {demoMode && <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
-            ℹ️ You are in Demo Mode. Data shown is for demonstration purposes only.
-          </div>}
-          <DashboardContent
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            handleLogOutRequest={handleLogOutRequest}
-            handleReloadRequest={handleReloadRequest}
-            GradesData={GradesData}
-            allGradesData={AllGradesData}
-            attendancePercentage={attendancePercentage}
-            ODhoursData={ODhoursData}
-            ODhoursIsOpen={ODhoursIsOpen}
-            setODhoursIsOpen={setODhoursIsOpen}
-            GradesDisplayIsOpen={GradesDisplayIsOpen}
-            setGradesDisplayIsOpen={setGradesDisplayIsOpen}
-            attendanceData={attendanceData}
-            activeDay={activeDay}
-            setActiveDay={setActiveDay}
-            marksData={marksData}
-            activeSubTab={activeSubTab}
-            setActiveSubTab={setActiveSubTab}
-            ScheduleData={ScheduleData}
-            hostelData={hostelData}
-            HostelActiveSubTab={HostelActiveSubTab}
-            setHostelActiveSubTab={setHostelActiveSubTab}
-            activeAttendanceSubTab={activeAttendanceSubTab}
-            setActiveAttendanceSubTab={setActiveAttendanceSubTab}
-            activeDayscholarSubTab={activeDayscholarSubTab}
-            setActiveDayscholarSubTab={setActiveDayscholarSubTab}
-            activeQBankSubTab={activeQBankSubTab}
-            setActiveQBankSubTab={setActiveQBankSubTab}
-            activeMoreSubTab={activeMoreSubTab}
-            setActiveMoreSubTab={setActiveMoreSubTab}
-            calendarData={Calender}
-            setCalender={setCalender}
-            setIsReloading={setIsReloading}
-            setProgressBar={setProgressBar}
-            setMessage={setMessage}
-            loginToVTOP={loginToVTOP}
-            setAllGradesData={setAllGradesData}
-            sethostelData={sethostelData}
-            setGradesData={setGradesData}
-            setScheduleData={setScheduleData}
-            handleLogin={handleLogin}
-            moodleData={moodleData}
-            setMoodleData={setMoodleData}
-            IDs={IDs}
-            setIDs={setIDs}
-            vitolData={vitolData}
-            setVitolData={setVitolData}
-            settings={settings}
-            setSettings={setSettings}
-          />
-        </>
-      )}
-      {/* <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
-        Scheduled maintenance on December 29, 2025 ( afternoon ). API services will be temporarily unavailable.
-      </div> */}
-
-      {!isLoggedIn && (
-        <div className={`md:hidden ${demoMode ? 'pb-24' : 'pb-6'}`}>
-          <LoginFooter />
-        </div>
-      )}
+      <AdminLayout
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onLogout={handleLogout}
+        username="Admin"
+      >
+        <AdminDashboard activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+      </AdminLayout>
     </motion.div>
   );
 }

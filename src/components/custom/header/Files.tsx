@@ -11,7 +11,7 @@ import {
     Download,
     Trash2
 } from "lucide-react";
-import { API_BASE } from "../Main";
+import { API_BASE } from "@/lib/api";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/ui/shadcn-io/dropzone";
 
 export default function Files() {

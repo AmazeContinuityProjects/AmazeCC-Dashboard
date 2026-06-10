@@ -19,7 +19,7 @@ import { useState, useEffect, useRef } from "react";
 import LeaveDisplay from "./Hostel/LeaveDisplay";
 import AllGradesDisplay from "./Exams/AllGradesDisplay";
 import BusFinder from "./dayscholar/BusFinder";
-import { API_BASE } from "./Main";
+import { API_BASE, apiFetch } from "@/lib/api";
 import MarksSubTab from "./Exams/MarksSubTab";
 import { RefreshCcw } from "lucide-react";
 import ScheduleSubTab from "./Exams/ScheduleSubTab";
@@ -97,7 +97,7 @@ export default function DashboardContent({
   const [dayscholarBuses, setDayscholarBuses] = useState([]);
 
   useEffect(() => {
-    fetch('/api/buses')
+    apiFetch('/api/buses')
       .then(res => res.json())
       .then(data => {
         if (data.success && data.buses) {
@@ -346,52 +346,21 @@ export default function DashboardContent({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <NavigationTabs
-        activeTab={activeTab}
-        setActiveTab={(newTab) => {
-          if (newTab === activeTab) {
-            setResetKey(k => k + 1);
-          }
-          setActiveTab(newTab);
-        }}
-        handleLogOutRequest={handleLogOutRequest}
-        handleReloadRequest={handleReloadRequest}
-        currSemesterID={settings.currSemesterID}
-        setCurrSemesterID={(val: string) => {
-          setSettings(prev => ({ ...prev, currSemesterID: val }))
-          localStorage.setItem("settings", JSON.stringify({ ...settings, currSemesterID: val }))
-        }
-        }
-        handleLogin={handleLogin}
-        setIsReloading={setIsReloading}
-        username={IDs.VtopUsername}
-        password={IDs.VtopPassword}
-        setPassword={(val: string[]) =>{
-          setIDs(prev => ({ ...prev, VtopUsername: val[0], VtopPassword: val[1] }))
-          localStorage.setItem("IDs", JSON.stringify({ ...IDs, VtopUsername: val[0], VtopPassword: val[1]}))
-        }
-        }
-        settings={settings}
-        setSettings={setSettings}
-        attendancePercentage={attendancePercentage}
-        marksData={marksData}
-        ODhoursData={ODhoursData}
-        setODhoursIsOpen={setODhoursIsOpen}
-        feedbackStatus={GradesData.feedback}
-        setGradesDisplayIsOpen={setGradesDisplayIsOpen}
-        activeAttendanceSubTab={activeAttendanceSubTab}
-        setActiveAttendanceSubTab={setActiveAttendanceSubTab}
-        activeSubTab={activeSubTab}
-        setActiveSubTab={setActiveSubTab}
-        HostelActiveSubTab={HostelActiveSubTab}
-        setHostelActiveSubTab={setHostelActiveSubTab}
-        activeDayscholarSubTab={activeDayscholarSubTab}
-        setActiveDayscholarSubTab={setActiveDayscholarSubTab}
-        activeQBankSubTab={activeQBankSubTab}
-        setActiveQBankSubTab={setActiveQBankSubTab}
-        activeMoreSubTab={activeMoreSubTab}
-        setActiveMoreSubTab={setActiveMoreSubTab}
-      />
+<NavigationTabs
+          activeTab={activeTab}
+          setActiveTab={(newTab) => {
+            if (newTab === activeTab) {
+              setResetKey(k => k + 1);
+            }
+            setActiveTab(newTab);
+          }}
+          handleLogOutRequest={handleLogOutRequest}
+          handleReloadRequest={handleReloadRequest}
+          username={IDs.VtopUsername}
+          settings={settings}
+          setSettings={setSettings}
+          setIsReloading={setIsReloading}
+        />
 
       <div 
         className={`relative bg-gray-50/50 dark:bg-gray-900/50 midnight:bg-black min-h-[100dvh] text-gray-900 dark:text-gray-100 midnight:text-gray-100 transition-all duration-300 pb-24 md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-72'} w-full overflow-hidden`}

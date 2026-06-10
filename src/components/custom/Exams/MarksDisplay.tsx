@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, Info, Activity, ChevronDown, ChevronUp } from "lucide-react";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import Image from "next/image";
-import { API_BASE } from "../Main";
+import { apiFetch } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 
 const formatNumber = (num) => {
@@ -146,7 +146,7 @@ export default function MarksDisplay({ data }) {
         const classIds = uniqueCourses.map(g => (g.theory || g.lab).classNbr).join(',');
         if (!classIds) return;
 
-        const res = await fetch(`/api/marks/stats?classes=${classIds}`);
+        const res = await apiFetch(`/api/marks/stats?classes=${classIds}`);
         if (res.ok) {
           const statsData = await res.json();
           setAllStats(statsData);
