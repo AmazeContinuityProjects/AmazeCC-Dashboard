@@ -1,11 +1,36 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import 'katex/dist/katex.min.css';
 import Latex from "react-latex-next";
-import { CheckCircle, Clock, FileText, Settings, ArrowRight, ArrowLeft, Eye, Trash2, Plus, RotateCcw, AlertTriangle, ChevronDown, Edit } from "lucide-react";
+import { CheckCircle, Clock, FileText, Settings, ArrowRight, ArrowLeft, Eye, Trash2, Plus, RotateCcw, AlertTriangle, ChevronDown, Edit, Search, Filter, Save, X, RefreshCw, Zap, BookOpen } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { GlassCard, GlassButton, GlassInput, GlassTextarea, StatusBadge, LoadingSpinner, EmptyState } from "@/components/custom/admin/AdminUI";
+import { GlassCard, GlassButton, GlassInput, StatusBadge, LoadingSpinner, EmptyState } from "@/components/custom/admin/AdminUI";
+
+const STATUS_FILTERS = [
+  { id: 'ALL', label: 'All', color: 'text-gray-600 dark:text-gray-400 midnight:text-gray-400' },
+  { id: 'PENDING', label: 'Pending', color: 'text-amber-600 dark:text-amber-400 midnight:text-amber-400' },
+  { id: 'OCR_QUEUED', label: 'OCR Queued', color: 'text-blue-600 dark:text-blue-400 midnight:text-blue-400' },
+  { id: 'OCR_PROCESSING', label: 'Processing', color: 'text-purple-600 dark:text-purple-400 midnight:text-purple-400' },
+  { id: 'PENDING_Q_APPROVAL', label: 'Review Ready', color: 'text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400' },
+  { id: 'APPROVED', label: 'Approved', color: 'text-green-600 dark:text-green-400 midnight:text-green-400' },
+  { id: 'REJECTED', label: 'Rejected', color: 'text-red-600 dark:text-red-400 midnight:text-red-400' },
+  { id: 'OCR_FAILED', label: 'Failed', color: 'text-red-600 dark:text-red-400 midnight:text-red-400' },
+];
+
+const statusBadge = (s: string) => {
+  const map: Record<string, { bg: string; text: string }> = {
+    PENDING: { bg: 'bg-amber-100/80 dark:bg-amber-900/30 midnight:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400 midnight:text-amber-400' },
+    OCR_QUEUED: { bg: 'bg-blue-100/80 dark:bg-blue-900/30 midnight:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400 midnight:text-blue-400' },
+    OCR_PROCESSING: { bg: 'bg-purple-100/80 dark:bg-purple-900/30 midnight:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-400 midnight:text-purple-400' },
+    PENDING_Q_APPROVAL: { bg: 'bg-emerald-100/80 dark:bg-emerald-900/30 midnight:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400 midnight:text-emerald-400' },
+    APPROVED: { bg: 'bg-green-100/80 dark:bg-green-900/30 midnight:bg-green-900/30', text: 'text-green-700 dark:text-green-400 midnight:text-green-400' },
+    REJECTED: { bg: 'bg-red-100/80 dark:bg-red-900/30 midnight:bg-red-900/30', text: 'text-red-700 dark:text-red-400 midnight:text-red-400' },
+    OCR_FAILED: { bg: 'bg-red-100/80 dark:bg-red-900/30 midnight:bg-red-900/30', text: 'text-red-700 dark:text-red-400 midnight:text-red-400' },
+  };
+  const s2 = map[s] || map.PENDING;
+  return `${s2.bg} ${s2.text}`;
+};
 
 export default function AdminQueueTab() {
   const [papers, setPapers] = useState<any[]>([]);
@@ -15,10 +40,12 @@ export default function AdminQueueTab() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editingPaper, setEditingPaper] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
 
-  useEffect(() => { fetchQueue(); }, []);
-
-  const fetchQueue = async () => {
+  const fetchQueue = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiFetch('/api/qbank/admin/queue');
@@ -26,9 +53,18 @@ export default function AdminQueueTab() {
       if (json.success && json.data) setPapers(json.data);
     } catch (err) { console.error(err); }
     setLoading(false);
-  };
+  }, []);
 
-  const handleReview = (paper: any) => { setSelectedPaper(paper); fetchQuestions(paper.source_id); };
+  useEffect(() => { fetchQueue(); }, [fetchQueue]);
+
+  const filteredPapers = papers.filter(p => {
+    if (statusFilter !== 'ALL' && p.approval_status !== statusFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (p.title || '').toLowerCase().includes(q) || (p.course_code || '').toLowerCase().includes(q) || (p.uploader_reg_no || '').toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   const handleStartOCR = async (paperId: string) => {
     setProcessingId(paperId);
@@ -41,24 +77,35 @@ export default function AdminQueueTab() {
     finally { setProcessingId(null); }
   };
 
-  const handleUpdateStatus = async (paperId: string, status: string) => {
+  const handleResetOCR = async (paperId: string) => {
     try {
-      const res = await apiFetch("/api/qbank/admin/status", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId, status }) });
-      const data = await res.json();
-      if (data.success) fetchQueue();
-      else alert("Status Update Error: " + data.error);
+      await apiFetch("/api/admin/ocr/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId }) });
+      fetchQueue();
     } catch (err) { console.error(err); }
   };
 
-  const handleUpdateUrl = async (paperId: string) => {
-    const newUrl = prompt("Enter the new public PDF URL:");
-    if (!newUrl) return;
+  const handleReject = async (paperId: string) => {
+    if (!confirm("Reject this paper?")) return;
+    try { await apiFetch("/api/qbank/admin/reject", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId }) }); fetchQueue(); }
+    catch (err) { console.error(err); }
+  };
+
+  const handlePublish = async (paperId: string) => {
+    try { await apiFetch("/api/qbank/admin/publish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId }) }); fetchQueue(); }
+    catch (err) { console.error(err); }
+  };
+
+  const handleSavePaper = async (paperId: string) => {
     try {
-      const res = await apiFetch("/api/admin/ocr/update-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId, fileUrl: newUrl }) });
-      const data = await res.json();
-      if (data.success) fetchQueue();
-      else alert("Update Error: " + data.error);
+      await apiFetch("/api/qbank/admin/queue", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId, ...editForm }) });
+      setEditingPaper(null);
+      fetchQueue();
     } catch (err) { console.error(err); }
+  };
+
+  const startEditing = (paper: any) => {
+    setEditingPaper(paper.source_id);
+    setEditForm({ title: paper.title, course_code: paper.course_code, source_type: paper.source_type, exam_year: paper.exam_year, exam_semester: paper.exam_semester });
   };
 
   const fetchQuestions = async (paperId: string) => {
@@ -69,28 +116,7 @@ export default function AdminQueueTab() {
     } catch (err) { console.error(err); }
   };
 
-  const handleReject = async (paperId: string) => {
-    if (!confirm("Are you sure you want to reject this paper?")) return;
-    try { await apiFetch("/api/qbank/admin/reject", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId }) }); fetchQueue(); }
-    catch (err) { console.error(err); }
-  };
-
-  const handlePublish = async () => {
-    if (!selectedPaper) return;
-    try { await apiFetch("/api/qbank/admin/publish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId: selectedPaper.source_id }) }); setSelectedPaper(null); fetchQueue(); }
-    catch (err) { console.error(err); }
-  };
-
-  const handleBulkImport = async () => {
-    try {
-      const parsed = JSON.parse(jsonInput);
-      if (!Array.isArray(parsed)) { alert("JSON must be an array of questions."); return; }
-      const res = await apiFetch("/api/qbank/admin/questions/bulk", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId: selectedPaper.source_id, questions: parsed }) });
-      const data = await res.json();
-      if (data.success) { fetchQuestions(selectedPaper.source_id); setIsJsonModalOpen(false); setJsonInput(""); }
-      else alert("Failed: " + data.error);
-    } catch (err: any) { alert("Invalid JSON: " + err.message); }
-  };
+  const handleReview = (paper: any) => { setSelectedPaper(paper); fetchQuestions(paper.source_id); };
 
   const handleUpdateQuestion = async (questionId: string, updates: any) => {
     try {
@@ -109,20 +135,25 @@ export default function AdminQueueTab() {
   };
 
   const handleDeleteQuestion = async (questionId: string) => {
-    if (!confirm("Are you sure you want to delete this question?")) return;
+    if (!confirm("Delete this question?")) return;
     try { setQuestions(prev => prev.filter(q => q.question_id !== questionId)); await apiFetch("/api/qbank/admin/questions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId }) }); }
     catch (err) { console.error(err); }
   };
 
-  const statusColor = (s: string) => {
-    if (s === 'PENDING') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 midnight:bg-amber-900/30 midnight:text-amber-400';
-    if (s.startsWith('OCR')) return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 midnight:bg-blue-900/30 midnight:text-blue-400';
-    if (s === 'APPROVED') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 midnight:bg-green-900/30 midnight:text-green-400';
-    if (s === 'REJECTED') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 midnight:bg-red-900/30 midnight:text-red-400';
-    return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400 midnight:bg-gray-900/30 midnight:text-gray-400';
+  const handleBulkImport = async () => {
+    try {
+      const parsed = JSON.parse(jsonInput);
+      if (!Array.isArray(parsed)) { alert("JSON must be an array."); return; }
+      const res = await apiFetch("/api/qbank/admin/questions/bulk", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId: selectedPaper.source_id, questions: parsed }) });
+      const data = await res.json();
+      if (data.success) { fetchQuestions(selectedPaper.source_id); setIsJsonModalOpen(false); setJsonInput(""); }
+      else alert("Failed: " + data.error);
+    } catch (err: any) { alert("Invalid JSON: " + err.message); }
   };
 
-  // ─── REVIEW VIEW (Split Pane) ───
+  const statusCounts = papers.reduce((acc, p) => { acc[p.approval_status] = (acc[p.approval_status] || 0) + 1; return acc; }, {} as Record<string, number>);
+
+  // ─── REVIEW VIEW ───
   if (selectedPaper) {
     return (
       <div className="flex flex-col h-full p-4">
@@ -134,12 +165,12 @@ export default function AdminQueueTab() {
               <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">{selectedPaper.course_code}</p>
             </div>
           </div>
-          <GlassButton onClick={handlePublish}><CheckCircle className="w-4 h-4 inline mr-2" />Publish</GlassButton>
+          <GlassButton onClick={() => handlePublish(selectedPaper.source_id)}><CheckCircle className="w-4 h-4 inline mr-2" />Publish</GlassButton>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-180px)]">
           {/* Left Pane */}
-          <GlassCard className="w-full lg:w-1/2 flex flex-col overflow-hidden">
+          <GlassCard className="w-full lg:w-1/2 flex flex-col overflow-hidden !p-0">
             <div className="p-3 bg-white/60 dark:bg-slate-800/60 midnight:bg-white/[0.06] backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10">
               <h3 className="font-semibold text-gray-700 dark:text-gray-300 midnight:text-gray-200 text-sm flex items-center gap-2"><FileText className="w-4 h-4" /> Source Document</h3>
             </div>
@@ -160,7 +191,7 @@ export default function AdminQueueTab() {
               {questions.length === 0 ? (
                 <EmptyState icon={<FileText className="w-10 h-10" />} title="No questions yet" description="Add questions manually or import JSON." />
               ) : questions.map((q, idx) => (
-                <GlassCard key={q.question_id || idx} className="p-4">
+                <GlassCard key={q.question_id || idx} className="p-4 !rounded-xl">
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <div className="flex items-center">
                       <span className="bg-blue-100 dark:bg-blue-900/40 midnight:bg-blue-900/40 text-blue-800 dark:text-blue-400 midnight:text-blue-400 px-2 py-1.5 text-xs font-bold rounded-l-md">Q.</span>
@@ -172,26 +203,17 @@ export default function AdminQueueTab() {
                     <input type="text" className="text-xs px-2 py-1.5 w-24 bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md focus:outline-none focus:border-blue-500" placeholder="Module" value={q.topic_name || ""} onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, topic_name: e.target.value } : item))} onBlur={(e) => handleUpdateQuestion(q.question_id, { topicName: e.target.value })} />
                     <div className="flex items-center ml-auto gap-2">
                       <div className="flex items-center">
-                        <input type="number" className="w-12 px-2 py-1 text-xs text-center bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 rounded-l-md focus:outline-none focus:border-blue-500" value={q.marks || 0} onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, marks: parseInt(e.target.value) || 0 } : item))} onBlur={(e) => handleUpdateQuestion(q.question_id, { marks: parseInt(e.target.value) || 0 })} />
+                        <input type="number" className="w-12 px-2 py-1 text-xs text-center bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-l-md focus:outline-none focus:border-blue-500" value={q.marks || 0} onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, marks: parseInt(e.target.value) || 0 } : item))} onBlur={(e) => handleUpdateQuestion(q.question_id, { marks: parseInt(e.target.value) || 0 })} />
                         <span className="bg-gray-100 dark:bg-gray-800 midnight:bg-gray-800 text-gray-600 dark:text-gray-400 midnight:text-gray-400 px-2 py-1 text-xs border border-l-0 border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-r-md">M</span>
                       </div>
                       <button onClick={() => handleDeleteQuestion(q.question_id)} className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 midnight:hover:bg-red-900/30 rounded-md transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
-
                   <textarea className="w-full p-3 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg font-mono text-sm bg-white dark:bg-slate-900 midnight:bg-black focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[100px]" value={q.question_text || ""} onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, question_text: e.target.value } : item))} onBlur={(e) => handleUpdateQuestion(q.question_id, { questionText: e.target.value })} placeholder="Type question text. Use $$ for LaTeX..." />
-
                   <div className="mt-3 p-3 bg-blue-50/80 dark:bg-blue-900/10 midnight:bg-blue-900/15 rounded-lg border border-blue-100/50 dark:border-blue-800/30 midnight:border-blue-800/30">
                     <p className="text-[10px] uppercase tracking-wider text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-bold mb-1">Preview</p>
                     <div className="text-sm overflow-x-auto min-h-[24px]"><Latex>{q.question_text || ""}</Latex></div>
                   </div>
-
-                  <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 midnight:border-gray-800/50 space-y-2">
-                    <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 midnight:text-gray-400">Image URL (Optional)</label>
-                    <input type="url" placeholder="https://i.imgur.com/..." className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md focus:outline-none focus:border-blue-500" value={q.image_url || ""} onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, image_url: e.target.value } : item))} onBlur={(e) => handleUpdateQuestion(q.question_id, { imageUrl: e.target.value || null })} />
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 midnight:text-gray-400">Upload to <a href="https://imgur.com/upload" target="_blank" className="text-blue-500 hover:underline">Imgur</a> and paste the direct link.</p>
-                  </div>
-
                   {q.question_type === 'MCQ' && (
                     <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 midnight:border-gray-800/50 space-y-3">
                       <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 midnight:text-gray-400">MCQ Options</p>
@@ -204,19 +226,17 @@ export default function AdminQueueTab() {
                       ))}
                     </div>
                   )}
-
                   {(q.question_type === 'NUMERICAL' || q.question_type === 'DESCRIPTIVE') && (
                     <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 midnight:border-gray-800/50">
                       <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 midnight:text-gray-400 mb-2">Answer / Hints</p>
-                      <input type="text" className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md focus:outline-none focus:border-blue-500" value={q.correct_answer || ""} onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, correct_answer: e.target.value } : item))} onBlur={(e) => handleUpdateQuestion(q.question_id, { correctAnswer: e.target.value })} placeholder={q.question_type === 'NUMERICAL' ? "e.g. 42.5" : "Answer hint..."} />
+                      <input type="text" className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md focus:outline-none focus:border-blue-500" value={q.correct_answer || ""} onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, correct_answer: e.target.value } : item))} onBlur={(e) => handleUpdateQuestion(q.question_id, { correctAnswer: e.target.value })} placeholder="Answer..." />
                     </div>
                   )}
                 </GlassCard>
               ))}
-
               <div className="flex flex-col sm:flex-row gap-3 mt-4">
                 <GlassButton variant="ghost" onClick={handleAddQuestion} className="flex-1 border-2 border-dashed border-gray-300 dark:border-gray-700 midnight:border-white/20 hover:border-blue-500"><Plus className="w-4 h-4 inline mr-2" />Add Question</GlassButton>
-                <GlassButton variant="secondary" onClick={() => setIsJsonModalOpen(true)} className="flex-1"><FileText className="w-4 h-4 inline mr-2" />Import JSON</GlassButton>
+                <GlassButton variant="secondary" onClick={() => setIsJsonModalOpen(true)} className="flex-1"><BookOpen className="w-4 h-4 inline mr-2" />Import JSON</GlassButton>
               </div>
             </div>
           </div>
@@ -225,20 +245,12 @@ export default function AdminQueueTab() {
         {/* JSON Import Modal */}
         {isJsonModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <GlassCard className="w-full max-w-2xl overflow-hidden p-0">
+            <GlassCard className="w-full max-w-2xl overflow-hidden !p-0">
               <div className="p-4 border-b border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 flex justify-between items-center">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white midnight:text-white">Import Questions</h3>
                 <button onClick={() => setIsJsonModalOpen(false)} className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 midnight:hover:text-white text-xl">&times;</button>
               </div>
               <div className="p-4">
-                <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">Paste a JSON array. This will overwrite existing questions.</p>
-                <details className="bg-blue-50/80 dark:bg-slate-800/40 midnight:bg-white/[0.04] border border-blue-200/50 dark:border-gray-700/50 midnight:border-white/10 rounded-lg p-3 mb-3">
-                  <summary className="text-xs font-bold text-blue-700 dark:text-blue-400 midnight:text-blue-400 cursor-pointer">AI Prompt Guide</summary>
-                  <pre className="mt-3 whitespace-pre-wrap font-mono text-[10px] text-gray-800 dark:text-gray-200 midnight:text-gray-200 overflow-x-auto">{`Convert this exam paper into a JSON array. Wrap equations in $$, double-escape backslashes.
-[{ "question_number": "1", "question_type": "MCQ", "topic_name": "Module 1", "marks": 2,
-  "question_text": "Capital of France?", "options": {"A":"London","B":"Paris","C":"Berlin","D":"Rome"},
-  "correct_answer": "B" }]`}</pre>
-                </details>
                 <textarea className="w-full h-64 p-3 font-mono text-xs border border-gray-300 dark:border-gray-700 midnight:border-gray-800 rounded-lg bg-white dark:bg-slate-900 midnight:bg-black focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder='[{"question_number":"1","question_type":"MCQ","marks":2,"question_text":"...","options":{"A":"..."},"correct_answer":"A"}]' value={jsonInput} onChange={(e) => setJsonInput(e.target.value)} />
               </div>
               <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 flex justify-end gap-3">
@@ -254,66 +266,117 @@ export default function AdminQueueTab() {
 
   // ─── QUEUE VIEW ───
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6">
+    <div className="w-full max-w-6xl mx-auto space-y-6">
+      {/* Status Filter Tabs */}
+      <div className="flex flex-wrap gap-2">
+        {STATUS_FILTERS.map(f => {
+          const count = f.id === 'ALL' ? papers.length : (statusCounts[f.id] || 0);
+          return (
+            <button key={f.id} onClick={() => setStatusFilter(f.id)} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${statusFilter === f.id ? 'bg-white/80 dark:bg-slate-800/80 midnight:bg-white/[0.06] shadow-md border border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 ' + f.color : 'text-gray-500 dark:text-gray-400 midnight:text-gray-400 hover:bg-white/40 dark:hover:bg-slate-800/40 midnight:hover:bg-white/[0.04]'}`}>
+              {f.label}
+              {count > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${statusFilter === f.id ? 'bg-gray-100 dark:bg-gray-700 midnight:bg-gray-700' : 'bg-gray-200/50 dark:bg-gray-700/50 midnight:bg-gray-700/50'}`}>{count}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input type="text" placeholder="Search by title, course, or uploader..." className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-white/80 dark:bg-slate-800/80 midnight:bg-white/[0.06] backdrop-blur-xl text-gray-900 dark:text-gray-100 midnight:text-white placeholder-gray-400 border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+      </div>
+
+      {/* Paper List */}
       {loading ? (
         <div className="text-center py-20"><LoadingSpinner /><p className="mt-4 text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">Loading queue...</p></div>
-      ) : papers.length === 0 ? (
-        <EmptyState icon={<FileText className="w-10 h-10" />} title="No papers in queue" description="Papers uploaded by students will appear here." />
+      ) : filteredPapers.length === 0 ? (
+        <EmptyState icon={<FileText className="w-10 h-10" />} title="No papers found" description={statusFilter !== 'ALL' ? "No papers match this filter." : "Papers uploaded by students will appear here."} />
       ) : (
-        <div className="space-y-4">
-          {papers.map((p) => (
-            <GlassCard key={p.source_id} className="p-5" hover>
-              <div className="flex flex-col md:flex-row md:items-center justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-blue-50/80 dark:bg-blue-900/20 midnight:bg-blue-900/30 rounded-xl text-blue-500 dark:text-blue-400 midnight:text-blue-400 shrink-0">
-                    <FileText className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white midnight:text-white">{p.title}</h3>
-                    <div className="flex gap-3 text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">
-                      <span className="font-medium">{p.course_code}</span>
-                      <span>&bull;</span>
-                      <span>by {p.uploader_reg_no}</span>
-                      <span>&bull;</span>
-                      <span>{p.source_type} {p.exam_semester} {p.exam_year}</span>
+        <div className="space-y-3">
+          {filteredPapers.map((p) => (
+            <GlassCard key={p.source_id} className="!p-0 overflow-hidden" hover>
+              <div className="flex flex-col md:flex-row">
+                {/* Status bar */}
+                <div className={`w-full md:w-1.5 shrink-0 ${statusBadge(p.approval_status).split(' ')[0]}`} />
+
+                <div className="flex-1 p-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    {/* Paper Info */}
+                    <div className="flex-1 min-w-0">
+                      {editingPaper === p.source_id ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          <input className="col-span-2 px-3 py-1.5 text-sm font-semibold bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value={editForm.title || ''} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} placeholder="Paper title" />
+                          <input className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value={editForm.course_code || ''} onChange={(e) => setEditForm({ ...editForm, course_code: e.target.value })} placeholder="Course code" />
+                          <input className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value={editForm.source_type || ''} onChange={(e) => setEditForm({ ...editForm, source_type: e.target.value })} placeholder="Type" />
+                          <input type="number" className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value={editForm.exam_year || ''} onChange={(e) => setEditForm({ ...editForm, exam_year: parseInt(e.target.value) })} placeholder="Year" />
+                          <input className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value={editForm.exam_semester || ''} onChange={(e) => setEditForm({ ...editForm, exam_semester: e.target.value })} placeholder="Semester" />
+                          <div className="col-span-2 flex gap-2">
+                            <GlassButton size="sm" onClick={() => handleSavePaper(p.source_id)}><Save className="w-3 h-3 inline mr-1" />Save</GlassButton>
+                            <GlassButton variant="ghost" size="sm" onClick={() => setEditingPaper(null)}><X className="w-3 h-3 inline mr-1" />Cancel</GlassButton>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold text-gray-900 dark:text-white midnight:text-white text-sm">{p.title}</h3>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border border-gray-200/30 dark:border-gray-700/30 midnight:border-white/10 ${statusBadge(p.approval_status)}`}>
+                              {p.approval_status?.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          <div className="flex gap-3 text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">
+                            <span className="font-medium">{p.course_code}</span>
+                            <span>&bull;</span>
+                            <span>{p.source_type} {p.exam_semester} {p.exam_year}</span>
+                            <span>&bull;</span>
+                            <span>by {p.uploader_reg_no}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </div>
-                </div>
 
-                <div className="mt-4 md:mt-0 flex items-center gap-3">
-                  <div className="relative">
-                    <select className={`appearance-none pl-3 pr-8 py-2 rounded-lg text-xs font-semibold border border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer ${statusColor(p.approval_status)}`} value={p.approval_status} onChange={(e) => handleUpdateStatus(p.source_id, e.target.value)}>
-                      <option value="PENDING">Pending</option><option value="OCR_QUEUED">OCR Queued</option><option value="OCR_PROCESSING">OCR Processing</option><option value="PENDING_Q_APPROVAL">Review Ready</option><option value="APPROVED">Approved</option><option value="REJECTED">Rejected</option><option value="OCR_FAILED">OCR Failed</option>
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 midnight:text-gray-400" />
-                  </div>
+                    {/* Actions */}
+                    {editingPaper !== p.source_id && (
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span title="Edit details"><GlassButton variant="ghost" size="sm" onClick={() => startEditing(p)}><Edit className="w-3.5 h-3.5" /></GlassButton></span>
 
-                  <div className="flex items-center gap-2">
-                    {p.approval_status === "PENDING" && (
-                      <>
-                        <GlassButton variant="secondary" size="sm" onClick={() => handleStartOCR(p.source_id)} disabled={processingId === p.source_id}>
-                          <Settings className={`w-4 h-4 inline mr-1 ${processingId === p.source_id ? 'animate-spin' : ''}`} />OCR
-                        </GlassButton>
-                        <GlassButton size="sm" onClick={() => handleReview(p)}>
-                          <FileText className="w-4 h-4 inline mr-1" />Review
-                        </GlassButton>
-                        <button onClick={() => handleReject(p.source_id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 midnight:hover:bg-red-900/20 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
-                      </>
-                    )}
-                    {(p.approval_status === "OCR_QUEUED" || p.approval_status === "OCR_PROCESSING") && (
-                      <div className="flex items-center gap-2 px-4 py-2 bg-amber-100/80 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 midnight:bg-amber-900/30 midnight:text-amber-400 rounded-lg text-sm font-medium animate-pulse">
-                        <Clock className="w-4 h-4" /> {p.approval_status === "OCR_QUEUED" ? "Queued..." : "Processing..."}
+                        {p.approval_status === 'PENDING' && (
+                          <>
+                            <GlassButton variant="secondary" size="sm" onClick={() => handleStartOCR(p.source_id)} disabled={processingId === p.source_id}>
+                              <Zap className={`w-3.5 h-3.5 inline mr-1 ${processingId === p.source_id ? 'animate-spin' : ''}`} />OCR
+                            </GlassButton>
+                            <GlassButton size="sm" onClick={() => handleReview(p)}><Eye className="w-3.5 h-3.5 inline mr-1" />Review</GlassButton>
+                            <button onClick={() => handleReject(p.source_id)} className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 midnight:hover:bg-red-900/20 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </>
+                        )}
+
+                        {(p.approval_status === 'OCR_QUEUED' || p.approval_status === 'OCR_PROCESSING') && (
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-100/80 dark:bg-purple-900/30 midnight:bg-purple-900/30 text-purple-700 dark:text-purple-400 midnight:text-purple-400 rounded-lg text-xs font-medium animate-pulse">
+                              <Clock className="w-3 h-3" /> {p.approval_status === 'OCR_QUEUED' ? 'Queued' : 'Processing'}
+                            </div>
+                            <span title="Reset to Pending"><GlassButton variant="ghost" size="sm" onClick={() => handleResetOCR(p.source_id)}><RotateCcw className="w-3.5 h-3.5" /></GlassButton></span>
+                          </div>
+                        )}
+
+                        {p.approval_status === 'PENDING_Q_APPROVAL' && (
+                          <GlassButton size="sm" onClick={() => handleReview(p)}><CheckCircle className="w-3.5 h-3.5 inline mr-1" />Review</GlassButton>
+                        )}
+
+                        {p.approval_status === 'APPROVED' && (
+                          <GlassButton variant="ghost" size="sm" onClick={() => handleReview(p)}><Eye className="w-3.5 h-3.5 inline mr-1" />View</GlassButton>
+                        )}
+
+                        {p.approval_status === 'REJECTED' && (
+                          <GlassButton variant="ghost" size="sm" onClick={() => { apiFetch("/api/admin/ocr/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId: p.source_id }) }).then(() => fetchQueue()); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" />Restore</GlassButton>
+                        )}
+
+                        {p.approval_status === 'OCR_FAILED' && (
+                          <>
+                            <GlassButton variant="ghost" size="sm" onClick={() => handleResetOCR(p.source_id)}><RotateCcw className="w-3.5 h-3.5 inline mr-1" />Retry</GlassButton>
+                            <GlassButton variant="ghost" size="sm" onClick={() => handleReject(p.source_id)}><Trash2 className="w-3.5 h-3.5" /></GlassButton>
+                          </>
+                        )}
                       </div>
-                    )}
-                    {p.approval_status === "OCR_FAILED" && (
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 px-3 py-2 bg-red-100/80 text-red-700 dark:bg-red-900/30 dark:text-red-400 midnight:bg-red-900/30 midnight:text-red-400 rounded-lg text-xs font-medium"><AlertTriangle className="w-4 h-4" />Failed</div>
-                        <GlassButton variant="ghost" size="sm" onClick={() => handleUpdateUrl(p.source_id)}><Edit className="w-4 h-4 inline mr-1" />Edit</GlassButton>
-                        <GlassButton variant="ghost" size="sm" onClick={() => handleUpdateStatus(p.source_id, 'PENDING')}><RotateCcw className="w-4 h-4 inline mr-1" />Retry</GlassButton>
-                      </div>
-                    )}
-                    {p.approval_status === "PENDING_Q_APPROVAL" && (
-                      <GlassButton size="sm" onClick={() => handleReview(p)}><CheckCircle className="w-4 h-4 inline mr-1" />Review</GlassButton>
                     )}
                   </div>
                 </div>

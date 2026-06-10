@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import AdminDashboard from "@/components/custom/dayscholar/AdminDashboard";
 import AdminLayout from "@/components/custom/admin/AdminLayout";
+import AdminLandingPage from "@/components/custom/admin/AdminLandingPage";
 import LoginForm from "./LoginForm";
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [activeTab, setActiveTab] = useState("qbank");
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeSubTab, setActiveSubTab] = useState("queue");
+  const [stats, setStats] = useState({ queueCount: 0, busRoutes: 0, totalPapers: 0, approvedPapers: 0, pendingReview: 0, failedOCR: 0, activeUsers: 0, vitolSubscribers: 0 });
 
   useEffect(() => {
     setIsAuthenticated(Boolean(localStorage.getItem("admin_token")));
@@ -18,6 +21,7 @@ export default function AdminPage() {
   const handleLogout = () => {
     localStorage.removeItem("admin_token");
     setIsAuthenticated(false);
+    setActiveTab("dashboard");
   };
 
   if (isCheckingAuth) {
@@ -37,8 +41,13 @@ export default function AdminPage() {
   }
 
   return (
-    <AdminLayout activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} username="Admin">
-      <AdminDashboard activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+    <AdminLayout activeTab={activeTab} setActiveTab={setActiveTab} activeSubTab={activeSubTab} setActiveSubTab={setActiveSubTab} onLogout={handleLogout} username="Admin" stats={stats}>
+      {activeTab === 'dashboard' && (
+        <AdminLandingPage setActiveTab={setActiveTab} setActiveSubTab={setActiveSubTab} stats={stats} />
+      )}
+      {(activeTab === 'qbank' || activeTab === 'buses' || activeTab === 'push') && (
+        <AdminDashboard activeTab={activeTab} activeSubTab={activeSubTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+      )}
     </AdminLayout>
   );
 }
