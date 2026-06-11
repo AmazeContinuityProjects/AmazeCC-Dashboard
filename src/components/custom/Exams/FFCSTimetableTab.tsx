@@ -326,9 +326,7 @@ export default function FFCSTimetableTab() {
             </style>
           </head>
           <body>
-            <div style="background-color: #0f172a; color: white; padding: 40px; width: 100%; box-sizing: border-box;">
-              ${pdfCaptureRef.current.innerHTML}
-            </div>
+            <div id="print-content" style="background-color: #0f172a; color: white; padding: 40px; width: 100%; box-sizing: border-box;"></div>
             <script>
               window.onload = () => {
                 setTimeout(() => {
@@ -344,6 +342,11 @@ export default function FFCSTimetableTab() {
       printWindow.document.open();
       printWindow.document.write(htmlContent);
       printWindow.document.close();
+
+      const container = printWindow.document.getElementById("print-content");
+      if (container && pdfCaptureRef.current) {
+        container.appendChild(pdfCaptureRef.current.cloneNode(true));
+      }
       
       setSuccessMsg("PDF print dialog opened!");
       setTimeout(() => setSuccessMsg(null), 3000);
