@@ -1,4 +1,6 @@
-# UniCC
+# AmazeCC
+
+![amazeCC logo](src/assets/images/AmazeCC.png)
 
 **Live site:** [https://amaze-cc.vercel.app/](https://amaze-cc.vercel.app/)
 
