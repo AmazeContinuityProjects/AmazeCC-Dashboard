@@ -120,11 +120,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeTab, activeSubTab
               <Upload className="h-10 w-10 text-gray-400 dark:text-gray-500 midnight:text-gray-500 mb-3" />
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 midnight:text-gray-200 mb-1">Upload buses.json</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-4">This will override the database directly.</p>
-              <GlassButton disabled={isUploading}>
+              <GlassButton disabled={isUploading} onClick={() => document.getElementById('bus-upload')?.click()}>
                 {isUploading ? <><LoadingSpinner size="sm" /><span className="ml-2">Uploading...</span></> : 'Select File'}
               </GlassButton>
               <input type="file" accept=".json" className="hidden" onChange={handleFileUpload} disabled={isUploading} id="bus-upload" />
-              <label htmlFor="bus-upload" className="cursor-pointer" />
             </div>
           </GlassCard>
           <GlassCard hover>
