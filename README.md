@@ -1,6 +1,6 @@
 # AmazeCC
 
-![amazeCC logo](public/icons/AmazeCC.png)
+<img src="public/icons/AmazeCC.png" width="300">
 
 **Live site:** [https://amaze-cc.vercel.app/](https://amaze-cc.vercel.app/)
 
@@ -95,13 +95,13 @@ app.use("/api/files/download/:userID/:fileID", downloadFile);
 
 ## Getting Started ( Frontend )
 
-To run UniCC locally:
+To run AmazeCC locally:
 
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/SugeethJSA/UniCC.git
-   cd UniCC
+   git clone https://github.com/SugeethJSA/AmazeCC-Dashboard.git
+   cd AmazeCC-Dashboard
    ```
 2. **Install dependencies:**
    *(If a package manager like pnpm is used)*
