@@ -1,6 +1,6 @@
 # AmazeCC
 
-![amazeCC logo](src/assets/images/AmazeCC.png)
+![amazeCC logo](public/icons/AmazeCC.png)
 
 **Live site:** [https://amaze-cc.vercel.app/](https://amaze-cc.vercel.app/)
 
@@ -12,8 +12,10 @@
 
 ## Overview
 
-UniCC is a web application designed specifically for students of a particular university.  
+AmazeCC is a web application designed specifically for students of a particular university.  
 It provides a clean, minimalist interface to access campus-related information such as attendance, grades, schedules, hostel status, and file storage.
+
+> Forked from [UniCC](https://github.com/Arya4930/UniCC) by Arya4930
 
 > Captcha solver logic is adapted from  
 > [ViBoot-Enhanced](https://github.com/arshsaxena/ViBoot-Enhanced/blob/main/js/captcha/captchaparser.js)
@@ -127,3 +129,4 @@ This project is licensed under the [MIT License](LICENSE).
 ## Contributors
 
 [![SugeethJSA](https://img.shields.io/badge/SugeethJSA-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/SugeethJSA)
+[![dhivyanj](https://img.shields.io/badge/dhivyanj-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/dhivyanj)
