@@ -69,7 +69,6 @@ jobs:
         run: ${{ steps.detect-package-manager.outputs.runner }} next build --webpack
         env:
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
-          NEXT_PUBLIC_BASE_PATH: "/${{ github.event.repository.name }}"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
