@@ -128,10 +128,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeTab, activeSubTab
           </GlassCard>
           <GlassCard hover>
             <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-gray-700 dark:text-gray-300 midnight:text-gray-200">
-              <Download size={16} /> Need a template?
+              <Download size={16} /> Export & Templates
             </h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">Download the current database schema to edit manually.</p>
-            <GlassButton variant="secondary" onClick={downloadTemplate}>Download buses_template.json</GlassButton>
+            <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">Export the current database to Excel or JSON format.</p>
+            <div className="flex flex-wrap gap-2">
+              <GlassButton variant="primary" onClick={() => {
+                import('@/lib/export').then(({ exportToExcel }) => {
+                  const exportData = buses.map(b => ({
+                    Route: b.route,
+                    Type: b.type,
+                    'Boarding Points': Array.isArray(b.boardingPoints) ? b.boardingPoints.join(', ') : b.boardingPoints,
+                    'Driver Name': b.driverName,
+                    'Driver Phone': b.driverPhone,
+                    'WhatsApp Group': b.whatsappGroup,
+                    'Location': b.busLocation
+                  }));
+                  exportToExcel(exportData, 'buses_export');
+                });
+              }}>
+                <Download size={14} className="inline mr-2" />
+                Export Excel
+              </GlassButton>
+              <GlassButton variant="secondary" onClick={downloadTemplate}>JSON Template</GlassButton>
+            </div>
           </GlassCard>
         </div>
         <GlassCard className="mt-6 border-l-4 border-l-blue-500">

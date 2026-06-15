@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function StatsCards({
   attendancePercentage,
@@ -13,6 +14,7 @@ export default function StatsCards({
   setCGPAHidden,
   attendancePercentageOrString,
   setAttendancePercentageOrString,
+  isLoading = false,
 }) {
   const totalODHours =
     ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
@@ -21,6 +23,19 @@ export default function StatsCards({
 
   const cardBase =
     "cursor-pointer p-6 rounded-2xl shadow hover:shadow-lg transition flex-shrink-0 snap-start w-[calc(50%-8px)] md:w-[calc(25%-12px)] flex flex-col items-center justify-center text-center";
+
+  if (isLoading) {
+    return (
+      <div data-scrollable className="overflow-x-auto snap-x snap-mandatory ml-4 mr-4">
+        <div className="flex gap-4 py-4 px-2">
+          <Skeleton className={`${cardBase} h-32 bg-white dark:bg-slate-800 midnight:bg-black`} />
+          <Skeleton className={`${cardBase} h-32 bg-white dark:bg-slate-800 midnight:bg-black`} />
+          <Skeleton className={`${cardBase} h-32 bg-white dark:bg-slate-800 midnight:bg-black`} />
+          <Skeleton className={`${cardBase} h-32 bg-white dark:bg-slate-800 midnight:bg-black`} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div data-scrollable className="overflow-x-auto snap-x snap-mandatory ml-4 mr-4">
@@ -32,7 +47,7 @@ export default function StatsCards({
         >
           <h2 className="text-lg font-semibold text-gray-600 dark:text-gray-300 midnight:text-gray-200">Attendance</h2>
           <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 mt-2">
-            {attendancePercentage[attendancePercentageOrString] || 0}
+            {attendancePercentage?.[attendancePercentageOrString] || 0}
           </p>
         </div>
 
@@ -94,7 +109,7 @@ export default function StatsCards({
         </div>}
 
         {/* Card 3 */}
-        {marksData.cgpa && <div
+        {marksData?.cgpa && <div
           className={`${cardBase} bg-white dark:bg-slate-800 midnight:bg-black midnight:border midnight:border-gray-800`}
           onClick={() => setCGPAHidden(!CGPAHidden)}
         >
@@ -114,7 +129,7 @@ export default function StatsCards({
         >
           <h2 className="text-lg font-semibold text-gray-600 dark:text-gray-300 midnight:text-gray-200">Credits Earned</h2>
           <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 mt-2">
-            {Number(marksData?.cgpa?.creditsEarned) + Number(marksData?.cgpa?.nonGradedRequirement || 0)}
+            {Number(marksData?.cgpa?.creditsEarned || 0) + Number(marksData?.cgpa?.nonGradedRequirement || 0)}
           </p>
         </div>
       </div>

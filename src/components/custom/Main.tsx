@@ -1,11 +1,14 @@
 'use client';
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { apiFetch } from "@/lib/api";
-import AdminDashboard from "@/components/custom/dayscholar/AdminDashboard";
-import AdminLayout from "@/components/custom/admin/AdminLayout";
-import AdminLandingPage from "@/components/custom/admin/AdminLandingPage";
-import AdminUsersTab from "@/components/custom/admin/AdminUsersTab";
+import { apiFetch, fetcher } from "@/lib/api";
+import dynamic from 'next/dynamic';
+import useSWR from 'swr';
+
+const AdminLayout = dynamic(() => import('@/components/custom/admin/AdminLayout'), { ssr: false });
+const AdminLandingPage = dynamic(() => import('@/components/custom/admin/AdminLandingPage'), { ssr: false });
+const AdminDashboard = dynamic(() => import('@/components/custom/dayscholar/AdminDashboard'), { ssr: false });
+const AdminUsersTab = dynamic(() => import('@/components/custom/admin/AdminUsersTab'), { ssr: false });
 
 export default function LoginPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -18,7 +21,6 @@ export default function LoginPage() {
   const [activeSubTab, setActiveSubTab] = useState('queue');
   const [userRole, setUserRole] = useState<'superadmin' | 'admin'>('admin');
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
-  const [stats, setStats] = useState({ queueCount: 0, busRoutes: 0, totalPapers: 0, approvedPapers: 0, pendingReview: 0, failedOCR: 0, activeUsers: 0, vitolSubscribers: 0 });
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
@@ -35,26 +37,21 @@ export default function LoginPage() {
     setIsCheckingAuth(false);
   }, []);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    apiFetch('/api/admin/stats')
-      .then(r => r.json())
-      .then(d => {
-        if (d.success && d.data) {
-          setStats({
-            queueCount: d.data.papers.pending + (d.data.papers.total - d.data.papers.approved - d.data.papers.pending - d.data.papers.pendingReview - d.data.papers.failedOcr),
-            busRoutes: d.data.busRoutes,
-            totalPapers: d.data.papers.total,
-            approvedPapers: d.data.papers.approved,
-            pendingReview: d.data.papers.pendingReview,
-            failedOCR: d.data.papers.failedOcr,
-            activeUsers: d.data.activeUsers,
-            vitolSubscribers: d.data.vitolSubscribers,
-          });
-        }
-      })
-      .catch(() => {});
-  }, [isAuthenticated]);
+  const { data: statsData, error: statsError } = useSWR(isAuthenticated ? '/api/admin/stats' : null, fetcher, {
+    refreshInterval: 30000, // Refresh every 30 seconds
+    revalidateOnFocus: true,
+  });
+
+  const stats = statsData?.success && statsData?.data ? {
+    queueCount: statsData.data.papers.pending + (statsData.data.papers.total - statsData.data.papers.approved - statsData.data.papers.pending - statsData.data.papers.pendingReview - statsData.data.papers.failedOcr),
+    busRoutes: statsData.data.busRoutes,
+    totalPapers: statsData.data.papers.total,
+    approvedPapers: statsData.data.papers.approved,
+    pendingReview: statsData.data.papers.pendingReview,
+    failedOCR: statsData.data.papers.failedOcr,
+    activeUsers: statsData.data.activeUsers,
+    vitolSubscribers: statsData.data.vitolSubscribers,
+  } : { queueCount: 0, busRoutes: 0, totalPapers: 0, approvedPapers: 0, pendingReview: 0, failedOCR: 0, activeUsers: 0, vitolSubscribers: 0 };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +69,7 @@ export default function LoginPage() {
         localStorage.setItem('admin_role', data.role);
         localStorage.setItem('admin_permissions', JSON.stringify(data.permissions));
         setUserRole(data.role);
-        setUserPermissions(data.permissions);
+        setUserPermissions(data.permissions || []);
         setIsAuthenticated(true);
       } else {
         setError(data.error || data.message || 'Authentication failed');
@@ -112,6 +109,7 @@ export default function LoginPage() {
       >
         <div className="w-full max-w-md bg-white/60 dark:bg-slate-900/60 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 p-8">
           <div className="text-center mb-8">
+            <img src="/logo.png" alt="AmazeCC Logo" className="w-16 h-16 mx-auto mb-4 object-contain drop-shadow-md" />
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
               Admin Portal
             </h2>
@@ -179,6 +177,7 @@ export default function LoginPage() {
         onLogout={handleLogout}
         username="Admin"
         userRole={userRole}
+        userPermissions={userPermissions}
         stats={stats}
       >
         {activeTab === 'dashboard' && (
@@ -193,8 +192,8 @@ export default function LoginPage() {
         {activeTab === 'profile' && (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/30 midnight:bg-blue-900/30 flex items-center justify-center">
-                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400 midnight:text-blue-400">A</span>
+              <div className="w-16 h-16 flex items-center justify-center bg-white/50 dark:bg-slate-800/50 midnight:bg-white/10 rounded-full border border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 shadow-sm">
+                <img src="/logo.png" alt="Admin Profile" className="w-10 h-10 object-contain drop-shadow-sm" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white midnight:text-white">Admin</h2>
