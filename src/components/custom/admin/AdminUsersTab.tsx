@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
 import { GlassCard, GlassButton, GlassInput, SectionHeader, StatusBadge, EmptyState, LoadingSpinner } from '@/components/custom/admin/AdminUI';
-import { UserPlus, Trash2, Shield, ShieldCheck, UserX, RefreshCcw } from 'lucide-react';
+import { UserPlus, Trash2, Shield, ShieldCheck, UserX, RefreshCcw, Download } from 'lucide-react';
+import { exportToExcel } from '@/lib/export';
 
 interface AdminUser {
   username: string;
@@ -168,6 +169,18 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
     );
   };
 
+  const handleExport = () => {
+    const exportData = users.map(u => ({
+      Username: u.username,
+      Role: u.role,
+      Permissions: u.permissions.join(', '),
+      'Added By': u.added_by,
+      Status: u.is_active ? 'Active' : 'Inactive',
+      'Created At': new Date(u.created_at).toLocaleString()
+    }));
+    exportToExcel(exportData, 'admin_users');
+  };
+
   if (!isSuperadmin) {
     return (
       <EmptyState
@@ -180,9 +193,13 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <SectionHeader title="User Management" description="Add, remove, and manage admin users" />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <GlassButton onClick={handleExport} variant="secondary" className="flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            Export
+          </GlassButton>
           <GlassButton onClick={fetchUsers} variant="secondary" className="flex items-center gap-2">
             <RefreshCcw className="w-4 h-4" />
             Refresh
@@ -203,12 +220,12 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
       {showAddForm && (
         <GlassCard>
           <form onSubmit={handleAddUser} className="space-y-4">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white midnight:text-white">Add New User</h3>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 midnight:text-gray-400 midnight:hover:text-gray-200"
+                className="hidden md:block text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 midnight:text-gray-400 midnight:hover:text-gray-200"
               >
                 Cancel
               </button>
@@ -265,11 +282,11 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
-              <GlassButton type="button" onClick={() => setShowAddForm(false)} variant="secondary">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
+              <GlassButton type="button" onClick={() => setShowAddForm(false)} variant="secondary" className="w-full sm:w-auto">
                 Cancel
               </GlassButton>
-              <GlassButton type="submit" variant="primary" disabled={addingUser || !newUsername.trim()}>
+              <GlassButton type="submit" variant="primary" disabled={addingUser || !newUsername.trim()} className="w-full sm:w-auto">
                 {addingUser ? 'Adding...' : 'Add User'}
               </GlassButton>
             </div>
@@ -289,8 +306,8 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
         <div className="space-y-3">
           {users.map((user) => (
             <GlassCard key={user.username}>
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
                     user.role === 'superadmin'
                       ? 'bg-purple-50 dark:bg-purple-900/30 midnight:bg-purple-900/30'
@@ -314,7 +331,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
                   {editingUser === user.username ? (
                     <>
                       <div className="flex flex-wrap gap-1">
@@ -336,45 +353,45 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
                       <GlassButton
                         onClick={() => handleUpdatePermissions(user.username)}
                         variant="primary"
-                        className="text-xs"
+                        className="text-xs flex-1 sm:flex-none"
                       >
                         Save
                       </GlassButton>
                       <GlassButton
                         onClick={() => setEditingUser(null)}
                         variant="secondary"
-                        className="text-xs"
+                        className="text-xs flex-1 sm:flex-none"
                       >
                         Cancel
                       </GlassButton>
                     </>
                   ) : (
-                    <>
+                    <div className="flex gap-2 w-full sm:w-auto mt-2 lg:mt-0">
                       <GlassButton
                         onClick={() => {
                           setEditingUser(user.username);
                           setEditPermissions(user.permissions);
                         }}
                         variant="secondary"
-                        className="text-xs"
+                        className="text-xs flex-1 sm:flex-none"
                       >
                         Edit Perms
                       </GlassButton>
                       <GlassButton
                         onClick={() => handleToggleActive(user.username, user.is_active)}
                         variant={user.is_active ? 'secondary' : 'primary'}
-                        className="text-xs"
+                        className="text-xs flex-1 sm:flex-none"
                       >
-                        {user.is_active ? <UserX className="w-3 h-3" /> : 'Activate'}
+                        {user.is_active ? <UserX className="w-4 h-4 mx-auto" /> : 'Activate'}
                       </GlassButton>
                       <GlassButton
                         onClick={() => handleDeleteUser(user.username)}
                         variant="danger"
-                        className="text-xs"
+                        className="text-xs flex-1 sm:flex-none"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-4 h-4 mx-auto" />
                       </GlassButton>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
