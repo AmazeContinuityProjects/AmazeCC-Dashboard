@@ -91,6 +91,11 @@ app.use("/api/files/fetch/:userID", fetchFiles);
 app.use("/api/files/delete/:userID/:fileID", deleteFile);
 app.use("/api/files/download/:userID/:fileID", downloadFile);
 ```
+## Past Papers & Q-Bank
+The Q-Bank module supports uploading past papers and managing questions:
+- **PDF Link Upload & OCR Worker**: Admins can submit a PDF link and choose an Ollama model (e.g. Qwen 2.5VL or Moondream), and a background OCR worker converts the PDF and extracts questions.
+- **Direct JSON Upload**: Admins can toggle the upload modal to "Direct JSON Import" to bypass PDF link submission and OCR completely. Pasting a structured questions JSON array immediately imports it into the admin review queue under `PENDING_Q_APPROVAL` status.
+
 ---
 
 ## Getting Started ( Frontend )

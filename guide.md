@@ -56,3 +56,20 @@
 | POST | `/vtop/hostels/room/allotment/info/student/1` | Get student hostel information |
 
 ---
+
+## Q-Bank & Admin APIs
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/qbank/upload` | Create paper metadata (accepts optional `fileUrl` for admin Direct JSON uploads) |
+| POST | `/api/qbank/admin/questions/bulk` | Bulk insert/override questions for a past paper |
+| GET | `/api/qbank/admin/queue` | Fetch queue of papers in all states (PENDING, OCR_QUEUED, OCR_PROCESSING, PENDING_Q_APPROVAL, OCR_FAILED, APPROVED, REJECTED) |
+| PATCH | `/api/qbank/admin/queue` | Update paper metadata or approval status |
+| GET | `/api/qbank/admin/questions?paperId=xxx` | Get list of questions for a specific paper |
+| POST | `/api/qbank/admin/questions` | Create a new question draft in a paper |
+| PATCH | `/api/qbank/admin/questions` | Update a question's content, number, type, options, answer, marks, or topic |
+| DELETE | `/api/qbank/admin/questions` | Delete a question |
+| POST | `/api/qbank/admin/ocr` | Queue a paper for OCR processing (specifying model) |
+| POST | `/api/admin/ocr/reset` | Reset OCR status of a paper back to PENDING |
+| POST | `/api/qbank/admin/publish` | Publish a paper and mark it as APPROVED |
+| POST | `/api/qbank/admin/reject` | Mark a paper as REJECTED |

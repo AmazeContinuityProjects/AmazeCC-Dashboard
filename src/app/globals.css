@@ -168,7 +168,7 @@ body {
   user-select: none; /* Make text unselectable to feel like a native app */
 }
 
-input, textarea, [contenteditable] {
+input, textarea, select, [contenteditable] {
   user-select: auto; /* Keep text fields selectable */
 }
 
