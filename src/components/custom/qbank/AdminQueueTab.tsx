@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import 'katex/dist/katex.min.css';
 import Latex from "react-latex-next";
-import { CheckCircle, Clock, FileText, Settings, ArrowRight, ArrowLeft, Eye, Trash2, Plus, RotateCcw, AlertTriangle, ChevronDown, Edit, Search, Filter, Save, X, RefreshCw, Zap, BookOpen } from "lucide-react";
+import { CheckCircle, Clock, FileText, Settings, ArrowRight, ArrowLeft, Eye, Trash2, Plus, RotateCcw, AlertTriangle, ChevronDown, Edit, Search, Filter, Save, X, RefreshCw, Zap, BookOpen, Image, Upload } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { GlassCard, GlassButton, GlassInput, StatusBadge, LoadingSpinner, EmptyState } from "@/components/custom/admin/AdminUI";
 
@@ -44,6 +44,8 @@ export default function AdminQueueTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingPaper, setEditingPaper] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
+  const [openLogId, setOpenLogId] = useState<string | null>(null);
+  const [selectedModels, setSelectedModels] = useState<Record<string, string>>({});
 
   const fetchQueue = useCallback(async () => {
     setLoading(true);
@@ -66,10 +68,15 @@ export default function AdminQueueTab() {
     return true;
   });
 
-  const handleStartOCR = async (paperId: string) => {
+  const handleStartOCR = async (paperId: string, model?: string) => {
+    console.log("🚀 handleStartOCR: paperId =", paperId, "model =", model);
     setProcessingId(paperId);
     try {
-      const res = await apiFetch("/api/admin/ocr", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId }) });
+      const res = await apiFetch("/api/admin/ocr", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ paperId, model }) 
+      });
       const data = await res.json();
       if (data.success) fetchQueue();
       else alert("OCR Error: " + data.error);
@@ -140,6 +147,76 @@ export default function AdminQueueTab() {
     catch (err) { console.error(err); }
   };
 
+  const handleUploadDiagram = async (questionId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await apiFetch("/api/qbank/admin/upload-diagram", {
+        method: "POST",
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Upload failed");
+      }
+
+      setQuestions(prev => prev.map(q => {
+        if (q.question_id === questionId) {
+          const currentUrls = Array.isArray(q.image_urls) ? q.image_urls : (q.image_url ? [q.image_url] : []);
+          const updatedUrls = [...currentUrls, json.url];
+          
+          handleUpdateQuestion(questionId, { 
+            imageUrls: updatedUrls,
+            hasDiagram: true
+          });
+
+          return { 
+            ...q, 
+            image_urls: updatedUrls,
+            has_diagram: true
+          };
+        }
+        return q;
+      }));
+
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to upload diagram: " + (err.message || "Unknown error"));
+    }
+  };
+
+  const handleDeleteDiagram = async (questionId: string, urlToDelete: string) => {
+    if (!confirm("Remove this diagram?")) return;
+
+    try {
+      setQuestions(prev => prev.map(q => {
+        if (q.question_id === questionId) {
+          const currentUrls = Array.isArray(q.image_urls) ? q.image_urls : (q.image_url ? [q.image_url] : []);
+          const updatedUrls = currentUrls.filter((url: string) => url !== urlToDelete);
+          
+          handleUpdateQuestion(questionId, { 
+            imageUrls: updatedUrls,
+            hasDiagram: updatedUrls.length > 0
+          });
+
+          return { 
+            ...q, 
+            image_urls: updatedUrls,
+            has_diagram: updatedUrls.length > 0
+          };
+        }
+        return q;
+      }));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleBulkImport = async () => {
     try {
       const parsed = JSON.parse(jsonInput);
@@ -201,6 +278,22 @@ export default function AdminQueueTab() {
                       <option value="DESCRIPTIVE">Descriptive</option><option value="MCQ">MCQ</option><option value="NUMERICAL">Numerical</option>
                     </select>
                     <input type="text" className="text-xs px-2 py-1.5 w-24 bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md focus:outline-none focus:border-blue-500" placeholder="Module" value={q.topic_name || ""} onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, topic_name: e.target.value } : item))} onBlur={(e) => handleUpdateQuestion(q.question_id, { topicName: e.target.value })} />
+                    
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase">Pg</span>
+                      <input type="number" className="w-10 px-1.5 py-1 text-xs bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md focus:outline-none focus:border-blue-500 text-center" placeholder="Pg" value={q.page_number !== null && q.page_number !== undefined ? q.page_number : ""} onChange={(e) => {
+                        const val = e.target.value ? parseInt(e.target.value) : "";
+                        setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, page_number: val === "" ? null : val } : item));
+                      }} onBlur={(e) => handleUpdateQuestion(q.question_id, { pageNumber: e.target.value ? parseInt(e.target.value) : null })} />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase">PDF</span>
+                      <input type="number" className="w-10 px-1.5 py-1 text-xs bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md focus:outline-none focus:border-blue-500 text-center" placeholder="PDF" value={q.source_pdf_page !== null && q.source_pdf_page !== undefined ? q.source_pdf_page : ""} onChange={(e) => {
+                        const val = e.target.value ? parseInt(e.target.value) : "";
+                        setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, source_pdf_page: val === "" ? null : val } : item));
+                      }} onBlur={(e) => handleUpdateQuestion(q.question_id, { sourcePdfPage: e.target.value ? parseInt(e.target.value) : null })} />
+                    </div>
+
                     <div className="flex items-center ml-auto gap-2">
                       <div className="flex items-center">
                         <input type="number" className="w-12 px-2 py-1 text-xs text-center bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-l-md focus:outline-none focus:border-blue-500" value={q.marks || 0} onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, marks: parseInt(e.target.value) || 0 } : item))} onBlur={(e) => handleUpdateQuestion(q.question_id, { marks: parseInt(e.target.value) || 0 })} />
@@ -210,9 +303,18 @@ export default function AdminQueueTab() {
                     </div>
                   </div>
                   <textarea className="w-full p-3 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg font-mono text-sm bg-white dark:bg-slate-900 midnight:bg-black focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[100px]" value={q.question_text || ""} onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, question_text: e.target.value } : item))} onBlur={(e) => handleUpdateQuestion(q.question_id, { questionText: e.target.value })} placeholder="Type question text. Use $$ for LaTeX..." />
-                  <div className="mt-3 p-3 bg-blue-50/80 dark:bg-blue-900/10 midnight:bg-blue-900/15 rounded-lg border border-blue-100/50 dark:border-blue-800/30 midnight:border-blue-800/30">
+                   <div className="mt-3 p-3 bg-blue-50/80 dark:bg-blue-900/10 midnight:bg-blue-900/15 rounded-lg border border-blue-100/50 dark:border-blue-800/30 midnight:border-blue-800/30 space-y-2">
                     <p className="text-[10px] uppercase tracking-wider text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-bold mb-1">Preview</p>
                     <div className="text-sm overflow-x-auto min-h-[24px]"><Latex>{q.question_text || ""}</Latex></div>
+                    {q.image_urls && q.image_urls.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-blue-100/30 dark:border-blue-900/30">
+                        {q.image_urls.map((url: string, imgIdx: number) => (
+                          <div key={imgIdx} className="max-w-[150px] max-h-[150px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-950 flex items-center justify-center p-1">
+                            <img src={url} alt={`Preview Diagram ${imgIdx + 1}`} className="max-w-full max-h-[140px] object-contain" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {q.question_type === 'MCQ' && (
                     <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 midnight:border-gray-800/50 space-y-3">
@@ -232,6 +334,62 @@ export default function AdminQueueTab() {
                       <input type="text" className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md focus:outline-none focus:border-blue-500" value={q.correct_answer || ""} onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, correct_answer: e.target.value } : item))} onBlur={(e) => handleUpdateQuestion(q.question_id, { correctAnswer: e.target.value })} placeholder="Answer..." />
                     </div>
                   )}
+
+                  {/* Diagram Upload & List */}
+                  <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 midnight:border-gray-800/50 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={q.has_diagram || false}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, has_diagram: val } : item));
+                            handleUpdateQuestion(q.question_id, { hasDiagram: val });
+                          }}
+                          className="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                        />
+                        <span className="flex items-center gap-1">
+                          <Image className="w-3.5 h-3.5" /> Has Diagram
+                        </span>
+                      </label>
+
+                      <label className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20 midnight:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/35 cursor-pointer transition-colors border border-blue-100 dark:border-blue-800/50">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Diagram</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleUploadDiagram(q.question_id, e)}
+                        />
+                      </label>
+                    </div>
+
+                    {q.image_urls && q.image_urls.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {q.image_urls.map((url: string, imgIdx: number) => (
+                          <div key={imgIdx} className="relative group w-20 h-20 rounded-lg border border-gray-200 dark:border-gray-805 overflow-hidden bg-gray-50 dark:bg-slate-900 midnight:bg-black">
+                            <img src={url} alt={`Diagram ${imgIdx + 1}`} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDiagram(q.question_id, url)}
+                                className="p-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                                title="Delete diagram"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      q.has_diagram && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 italic">No diagram images uploaded yet.</p>
+                      )
+                    )}
+                  </div>
                 </GlassCard>
               ))}
               <div className="flex flex-col sm:flex-row gap-3 mt-4">
@@ -280,10 +438,17 @@ export default function AdminQueueTab() {
         })}
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input type="text" placeholder="Search by title, course, or uploader..." className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-white/80 dark:bg-slate-800/80 midnight:bg-white/[0.06] backdrop-blur-xl text-gray-900 dark:text-gray-100 midnight:text-white placeholder-gray-400 border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+      {/* Search & Refresh */}
+      <div className="flex items-center gap-3">
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input type="text" placeholder="Search by title, course, or uploader..." className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-white/80 dark:bg-slate-800/80 midnight:bg-white/[0.06] backdrop-blur-xl text-gray-900 dark:text-gray-100 midnight:text-white placeholder-gray-400 border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        </div>
+        <span title="Refresh Queue">
+          <GlassButton variant="secondary" onClick={fetchQueue} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </GlassButton>
+        </span>
       </div>
 
       {/* Paper List */}
@@ -341,7 +506,18 @@ export default function AdminQueueTab() {
 
                         {p.approval_status === 'PENDING' && (
                           <>
-                            <GlassButton variant="secondary" size="sm" onClick={() => handleStartOCR(p.source_id)} disabled={processingId === p.source_id}>
+                            <select 
+                              value={selectedModels[p.source_id] || p.ocr_model || "qwen2.5vl:3b"} 
+                              onChange={(e) => {
+                                console.log("🚀 Model select onChange: paperId =", p.source_id, "val =", e.target.value);
+                                setSelectedModels(prev => ({ ...prev, [p.source_id]: e.target.value }));
+                              }}
+                              className="relative z-10 cursor-pointer pointer-events-auto shrink-0 min-w-[140px] text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 text-gray-900 dark:text-gray-100 midnight:text-white"
+                            >
+                              <option value="qwen2.5vl:3b" className="bg-white dark:bg-slate-900 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-white">Qwen 3B (Precise)</option>
+                              <option value="moondream" className="bg-white dark:bg-slate-900 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-white">Moondream (Fast)</option>
+                            </select>
+                            <GlassButton variant="secondary" size="sm" onClick={() => handleStartOCR(p.source_id, selectedModels[p.source_id] || p.ocr_model || "qwen2.5vl:3b")} disabled={processingId === p.source_id}>
                               <Zap className={`w-3.5 h-3.5 inline mr-1 ${processingId === p.source_id ? 'animate-spin' : ''}`} />OCR
                             </GlassButton>
                             <GlassButton size="sm" onClick={() => handleReview(p)}><Eye className="w-3.5 h-3.5 inline mr-1" />Review</GlassButton>
@@ -359,11 +535,43 @@ export default function AdminQueueTab() {
                         )}
 
                         {p.approval_status === 'PENDING_Q_APPROVAL' && (
-                          <GlassButton size="sm" onClick={() => handleReview(p)}><CheckCircle className="w-3.5 h-3.5 inline mr-1" />Review</GlassButton>
+                          <>
+                            <select 
+                              value={selectedModels[p.source_id] || p.ocr_model || "qwen2.5vl:3b"} 
+                              onChange={(e) => {
+                                setSelectedModels(prev => ({ ...prev, [p.source_id]: e.target.value }));
+                              }}
+                              className="relative z-10 cursor-pointer pointer-events-auto shrink-0 min-w-[140px] text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 text-gray-900 dark:text-gray-100 midnight:text-white"
+                            >
+                              <option value="qwen2.5vl:3b" className="bg-white dark:bg-slate-900 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-white">Qwen 3B (Precise)</option>
+                              <option value="moondream" className="bg-white dark:bg-slate-900 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-white">Moondream (Fast)</option>
+                            </select>
+                            <GlassButton variant="secondary" size="sm" onClick={() => handleStartOCR(p.source_id, selectedModels[p.source_id] || p.ocr_model || "qwen2.5vl:3b")} disabled={processingId === p.source_id}>
+                              <Zap className={`w-3.5 h-3.5 inline mr-1 ${processingId === p.source_id ? 'animate-spin' : ''}`} />Re-run OCR
+                            </GlassButton>
+                            <GlassButton size="sm" onClick={() => handleReview(p)}><CheckCircle className="w-3.5 h-3.5 inline mr-1" />Review</GlassButton>
+                            <span title="Reset to Pending"><GlassButton variant="ghost" size="sm" onClick={() => handleResetOCR(p.source_id)}><RotateCcw className="w-3.5 h-3.5" /></GlassButton></span>
+                          </>
                         )}
 
                         {p.approval_status === 'APPROVED' && (
-                          <GlassButton variant="ghost" size="sm" onClick={() => handleReview(p)}><Eye className="w-3.5 h-3.5 inline mr-1" />View</GlassButton>
+                          <>
+                            <select 
+                              value={selectedModels[p.source_id] || p.ocr_model || "qwen2.5vl:3b"} 
+                              onChange={(e) => {
+                                setSelectedModels(prev => ({ ...prev, [p.source_id]: e.target.value }));
+                              }}
+                              className="relative z-10 cursor-pointer pointer-events-auto shrink-0 min-w-[140px] text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 text-gray-900 dark:text-gray-100 midnight:text-white"
+                            >
+                              <option value="qwen2.5vl:3b" className="bg-white dark:bg-slate-900 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-white">Qwen 3B (Precise)</option>
+                              <option value="moondream" className="bg-white dark:bg-slate-900 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-white">Moondream (Fast)</option>
+                            </select>
+                            <GlassButton variant="secondary" size="sm" onClick={() => handleStartOCR(p.source_id, selectedModels[p.source_id] || p.ocr_model || "qwen2.5vl:3b")} disabled={processingId === p.source_id}>
+                              <Zap className={`w-3.5 h-3.5 inline mr-1 ${processingId === p.source_id ? 'animate-spin' : ''}`} />Re-run OCR
+                            </GlassButton>
+                            <GlassButton variant="ghost" size="sm" onClick={() => handleReview(p)}><Eye className="w-3.5 h-3.5 inline mr-1" />View</GlassButton>
+                            <span title="Reset to Pending"><GlassButton variant="ghost" size="sm" onClick={() => handleResetOCR(p.source_id)}><RotateCcw className="w-3.5 h-3.5" /></GlassButton></span>
+                          </>
                         )}
 
                         {p.approval_status === 'REJECTED' && (
@@ -379,6 +587,37 @@ export default function AdminQueueTab() {
                       </div>
                     )}
                   </div>
+
+                  {/* Progress bar for running OCR */}
+                  {(p.approval_status === 'OCR_QUEUED' || p.approval_status === 'OCR_PROCESSING') && p.ocr_progress !== undefined && (
+                    <div className="mt-3">
+                      <div className="flex justify-between items-center text-xs text-gray-500 mb-1">
+                        <span>OCR Progress</span>
+                        <span className="font-semibold">{p.ocr_progress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                        <div className="bg-purple-600 h-1.5 rounded-full transition-all duration-500" style={{ width: `${p.ocr_progress}%` }}></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Logs toggle button and logs content */}
+                  {p.ocr_logs && (
+                    <div className="mt-3 border-t border-gray-200/20 dark:border-gray-700/20 pt-2">
+                      <button 
+                        onClick={() => setOpenLogId(openLogId === p.source_id ? null : p.source_id)}
+                        className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium flex items-center gap-1 focus:outline-none cursor-pointer"
+                      >
+                        {openLogId === p.source_id ? 'Hide Logs' : 'View OCR Logs'}
+                      </button>
+                      
+                      {openLogId === p.source_id && (
+                        <pre className="mt-2 p-3 bg-slate-950 text-slate-300 font-mono text-[10px] rounded-lg max-h-40 overflow-y-auto whitespace-pre-wrap border border-slate-800">
+                          {p.ocr_logs}
+                        </pre>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </GlassCard>
