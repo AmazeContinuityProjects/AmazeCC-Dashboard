@@ -54,6 +54,10 @@ async function startWorker() {
       await client.query(`ALTER TABLE papers_archive ADD COLUMN IF NOT EXISTS ocr_logs TEXT`);
       await client.query(`ALTER TABLE papers_archive ADD COLUMN IF NOT EXISTS ocr_progress INT DEFAULT 0`);
       await client.query(`ALTER TABLE papers_archive ADD COLUMN IF NOT EXISTS ocr_model TEXT`);
+      await client.query(`ALTER TABLE papers_archive ADD COLUMN IF NOT EXISTS file_size BIGINT`);
+      await client.query(`ALTER TABLE papers_archive ADD COLUMN IF NOT EXISTS storage_provider TEXT DEFAULT 'R2'`);
+      await client.query(`ALTER TABLE papers_archive ALTER COLUMN source_type SET DEFAULT 'UPLOAD'`);
+      await client.query(`ALTER TABLE papers_archive ADD COLUMN IF NOT EXISTS source_url TEXT`);
       console.log(`✅ Database schema verified`);
 
       let lastCheck = 0;

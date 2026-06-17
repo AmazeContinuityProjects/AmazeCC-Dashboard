@@ -5,6 +5,13 @@ import AdminDashboard from "@/components/custom/dayscholar/AdminDashboard";
 import AdminLayout from "@/components/custom/admin/AdminLayout";
 import AdminLandingPage from "@/components/custom/admin/AdminLandingPage";
 import LoginForm from "./LoginForm";
+import PapersManager from "@/components/custom/admin/PapersManager";
+import QuestionsManager from "@/components/custom/admin/QuestionsManager";
+import DiagramsManager from "@/components/custom/admin/DiagramsManager";
+import StorageManager from "@/components/custom/admin/StorageManager";
+import AuditLogsManager from "@/components/custom/admin/AuditLogsManager";
+import SettingsTab from "@/components/custom/admin/SettingsTab";
+import AdminUsersTab from "@/components/custom/admin/AdminUsersTab";
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -43,10 +50,31 @@ export default function AdminPage() {
   return (
     <AdminLayout activeTab={activeTab} setActiveTab={setActiveTab} activeSubTab={activeSubTab} setActiveSubTab={setActiveSubTab} onLogout={handleLogout} username="Admin" stats={stats}>
       {activeTab === 'dashboard' && (
-        <AdminLandingPage setActiveTab={setActiveTab} setActiveSubTab={setActiveSubTab} stats={stats} />
+        <AdminLandingPage setActiveTab={setActiveTab} setActiveSubTab={setActiveSubTab} />
       )}
       {(activeTab === 'qbank' || activeTab === 'buses' || activeTab === 'push') && (
         <AdminDashboard activeTab={activeTab} activeSubTab={activeSubTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+      )}
+      {activeTab === 'papers' && (
+        <PapersManager />
+      )}
+      {activeTab === 'questions' && (
+        <QuestionsManager />
+      )}
+      {activeTab === 'diagrams' && (
+        <DiagramsManager />
+      )}
+      {activeTab === 'storage' && (
+        <StorageManager />
+      )}
+      {activeTab === 'audit_logs' && (
+        <AuditLogsManager />
+      )}
+      {activeTab === 'users' && (
+        <AdminUsersTab currentUserRole="superadmin" />
+      )}
+      {activeTab === 'settings' && (
+        <SettingsTab />
       )}
     </AdminLayout>
   );

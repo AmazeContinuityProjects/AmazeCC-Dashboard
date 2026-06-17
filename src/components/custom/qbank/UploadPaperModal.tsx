@@ -18,6 +18,10 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Cloudflare R2 states
+  const [uploadSourceType, setUploadSourceType] = useState<"file" | "drive" | "external">("file");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   if (!isOpen) return null;
 
   const effectiveCourseCode = useCustomCode ? customCourseCode.trim().toUpperCase() : courseCode;
@@ -57,7 +61,10 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!effectiveCourseCode || !title) return;
-    if (uploadMode === "file" && !fileUrl) return;
+    if (uploadMode === "file") {
+      if (uploadSourceType === "file" && !selectedFile) return;
+      if (uploadSourceType !== "file" && !fileUrl) return;
+    }
 
     let parsedQuestions: any[] = [];
     if (uploadMode === "json") {
@@ -80,22 +87,40 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
 
     setUploading(true);
     try {
-      const payload = {
-        courseCode: effectiveCourseCode,
-        title,
-        paperType,
-        examSemester: semester,
-        examYear: year,
-        uploaderRegNo: username,
-        fileUrl: uploadMode === "json" ? "DIRECT_JSON" : fileUrl,
-        isAdmin
-      };
+      let res;
+      if (uploadMode === "file" && uploadSourceType === "file" && selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("courseCode", effectiveCourseCode);
+        formData.append("title", title);
+        formData.append("paperType", paperType);
+        formData.append("examSemester", semester);
+        formData.append("examYear", year);
+        formData.append("uploaderRegNo", username);
+        formData.append("isAdmin", String(isAdmin));
 
-      const res = await apiFetch("/api/qbank/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        res = await apiFetch("/api/qbank/upload", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        const payload = {
+          courseCode: effectiveCourseCode,
+          title,
+          paperType,
+          examSemester: semester,
+          examYear: year,
+          uploaderRegNo: username,
+          fileUrl: uploadMode === "json" ? "DIRECT_JSON" : fileUrl,
+          isAdmin
+        };
+
+        res = await apiFetch("/api/qbank/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
 
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -144,6 +169,8 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
         setJsonText("");
         setQueueImmediately(false);
         setSelectedModel("qwen2.5vl:3b");
+        setUploadSourceType("file");
+        setSelectedFile(null);
       }, 2000);
     } catch (err: any) {
       console.error(err);
@@ -208,6 +235,14 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
                 ? `Your paper has been uploaded and queued for OCR processing using ${selectedModel === "moondream" ? "Moondream" : "Qwen 3B"}.`
                 : "Your paper has been sent to the Admin queue for question extraction and approval."}
             </p>
+            {uploadMode === "file" && selectedFile && (
+              <div className="mt-4 p-3 bg-gray-50 dark:bg-slate-800 midnight:bg-slate-900 border border-gray-100 dark:border-gray-800 midnight:border-gray-800 rounded-xl text-left w-full text-xs space-y-1 text-gray-600 dark:text-gray-300">
+                <p><strong>File Name:</strong> {selectedFile.name}</p>
+                <p><strong>Size:</strong> {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                <p><strong>Upload:</strong> <span className="text-green-600 font-semibold">Success</span></p>
+                <p><strong>Paper Status:</strong> {queueImmediately ? "OCR Queued" : "Pending Approval"}</p>
+              </div>
+            )}
           </div>
         ) : (
           <form onSubmit={handleUpload} className="p-5 space-y-4">
@@ -306,27 +341,148 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
             {/* Conditional input fields based on mode */}
             {uploadMode === "file" ? (
               <>
-                {/* PDF File Link */}
+                {/* Document Source Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 mb-1">
-                    Link to Document (Google Drive, Dropbox, etc.)
+                    Document Source
                   </label>
-                  <input
-                    type="url"
-                    required
-                    value={fileUrl}
-                    onChange={(e) => setFileUrl(e.target.value)}
-                    placeholder="https://drive.google.com/..."
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 midnight:border-gray-800 rounded-lg bg-white dark:bg-slate-800 midnight:bg-slate-900 text-gray-900 dark:text-gray-100 midnight:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 midnight:border-yellow-700/50 rounded-lg p-3 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 mt-0.5 shrink-0" />
-                  <div className="text-sm text-yellow-800 dark:text-yellow-200">
-                    <strong>Important:</strong> Please ensure the link is set to "Anyone with the link can view" before submitting. Your paper will be reviewed by an admin before being published to the Q-Bank.
+                  <div className="grid grid-cols-3 gap-2 p-1 bg-gray-100 dark:bg-slate-800 midnight:bg-slate-900 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => { setUploadSourceType("file"); setFileUrl(""); }}
+                      className={`py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                        uploadSourceType === "file"
+                          ? "bg-white dark:bg-slate-900 midnight:bg-black text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                      }`}
+                    >
+                      PDF Upload
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setUploadSourceType("drive"); setSelectedFile(null); }}
+                      className={`py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                        uploadSourceType === "drive"
+                          ? "bg-white dark:bg-slate-900 midnight:bg-black text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                      }`}
+                    >
+                      Google Drive
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setUploadSourceType("external"); setSelectedFile(null); }}
+                      className={`py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                        uploadSourceType === "external"
+                          ? "bg-white dark:bg-slate-900 midnight:bg-black text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                      }`}
+                    >
+                      External URL
+                    </button>
                   </div>
                 </div>
+
+                {/* Conditional Inputs */}
+                {uploadSourceType === "file" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 mb-1">
+                      Upload PDF File (Cloudflare R2)
+                    </label>
+                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 dark:border-gray-700 midnight:border-gray-800 rounded-xl hover:border-blue-500 dark:hover:border-blue-500 transition-colors relative">
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          if (file) {
+                            if (file.type !== "application/pdf") {
+                              alert("Only PDF files are allowed!");
+                              return;
+                            }
+                            if (file.size > 15 * 1024 * 1024) {
+                              alert("File size exceeds the 15MB limit!");
+                              return;
+                            }
+                            setSelectedFile(file);
+                          }
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <div className="space-y-1 text-center pointer-events-none">
+                        <UploadCloud className="mx-auto h-10 w-10 text-gray-400" />
+                        <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                          <span className="relative rounded-md font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-500">
+                            {selectedFile ? "Change file" : "Upload a file"}
+                          </span>
+                          <p className="pl-1">or drag and drop</p>
+                        </div>
+                        <p className="text-xs text-gray-500">PDF up to 15MB</p>
+                      </div>
+                    </div>
+
+                    {selectedFile && (
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 midnight:border-blue-800/30 rounded-xl flex items-center justify-between animate-fade-in">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 truncate">
+                            {selectedFile.name}
+                          </p>
+                          <p className="text-[10px] text-blue-500">
+                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFile(null)}
+                          className="p-1 text-blue-500 hover:text-blue-700 dark:hover:text-blue-300"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {uploadSourceType === "drive" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 mb-1">
+                      Google Drive Link
+                    </label>
+                    <input
+                      type="url"
+                      required
+                      value={fileUrl}
+                      onChange={(e) => setFileUrl(e.target.value)}
+                      placeholder="https://drive.google.com/..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 midnight:border-gray-800 rounded-lg bg-white dark:bg-slate-800 midnight:bg-slate-900 text-gray-900 dark:text-gray-100 midnight:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
+
+                {uploadSourceType === "external" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 mb-1">
+                      External PDF URL
+                    </label>
+                    <input
+                      type="url"
+                      required
+                      value={fileUrl}
+                      onChange={(e) => setFileUrl(e.target.value)}
+                      placeholder="https://example.com/document.pdf"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 midnight:border-gray-800 rounded-lg bg-white dark:bg-slate-800 midnight:bg-slate-900 text-gray-900 dark:text-gray-100 midnight:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
+
+                {uploadSourceType !== "file" && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 midnight:border-yellow-700/50 rounded-lg p-3 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 mt-0.5 shrink-0" />
+                    <div className="text-sm text-yellow-800 dark:text-yellow-200">
+                      <strong>Important:</strong> Please ensure the link is set to "Anyone with the link can view" before submitting. Your paper will be reviewed by an admin before being published to the Q-Bank.
+                    </div>
+                  </div>
+                )}
 
                 {isAdmin && (
                   <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/30 midnight:bg-slate-900/30 rounded-xl border border-gray-200 dark:border-gray-800 midnight:border-gray-800">
@@ -348,7 +504,6 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
                         <select
                           value={selectedModel}
                           onChange={(e) => {
-                            console.log("🚀 UploadModal selectedModel onChange: val =", e.target.value);
                             setSelectedModel(e.target.value);
                           }}
                           className="relative z-10 cursor-pointer pointer-events-auto w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 midnight:text-white"
@@ -393,7 +548,15 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
             <div className="pt-2">
               <button
                 type="submit"
-                disabled={uploading || !effectiveCourseCode}
+                disabled={
+                  uploading || 
+                  !effectiveCourseCode || 
+                  !title || 
+                  (uploadMode === "file" && (
+                    (uploadSourceType === "file" && !selectedFile) ||
+                    (uploadSourceType !== "file" && !fileUrl)
+                  ))
+                }
                 className="w-full flex justify-center items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 shadow-sm"
               >
                 {uploading ? (

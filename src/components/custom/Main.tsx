@@ -6,6 +6,12 @@ import AdminDashboard from "@/components/custom/dayscholar/AdminDashboard";
 import AdminLayout from "@/components/custom/admin/AdminLayout";
 import AdminLandingPage from "@/components/custom/admin/AdminLandingPage";
 import AdminUsersTab from "@/components/custom/admin/AdminUsersTab";
+import PapersManager from "@/components/custom/admin/PapersManager";
+import QuestionsManager from "@/components/custom/admin/QuestionsManager";
+import DiagramsManager from "@/components/custom/admin/DiagramsManager";
+import StorageManager from "@/components/custom/admin/StorageManager";
+import AuditLogsManager from "@/components/custom/admin/AuditLogsManager";
+import SettingsTab from "@/components/custom/admin/SettingsTab";
 
 export default function LoginPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -23,62 +29,38 @@ export default function LoginPage() {
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
     const storedRole = localStorage.getItem("admin_role") as 'superadmin' | 'admin' | null;
-    const storedPerms = localStorage.getItem("admin_permissions");
-    
-    setIsAuthenticated(Boolean(token));
-    if (storedRole) setUserRole(storedRole);
-    if (storedPerms) {
-      try {
-        setUserPermissions(JSON.parse(storedPerms));
-      } catch {}
+    if (token) {
+      setIsAuthenticated(true);
+      if (storedRole) {
+        setUserRole(storedRole);
+      }
     }
     setIsCheckingAuth(false);
   }, []);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    apiFetch('/api/admin/stats')
-      .then(r => r.json())
-      .then(d => {
-        if (d.success && d.data) {
-          setStats({
-            queueCount: d.data.papers.pending + (d.data.papers.total - d.data.papers.approved - d.data.papers.pending - d.data.papers.pendingReview - d.data.papers.failedOcr),
-            busRoutes: d.data.busRoutes,
-            totalPapers: d.data.papers.total,
-            approvedPapers: d.data.papers.approved,
-            pendingReview: d.data.papers.pendingReview,
-            failedOCR: d.data.papers.failedOcr,
-            activeUsers: d.data.activeUsers,
-            vitolSubscribers: d.data.vitolSubscribers,
-          });
-        }
-      })
-      .catch(() => {});
-  }, [isAuthenticated]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+
     try {
-      const res = await apiFetch('/api/admin/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+      const res = await apiFetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
       });
       const data = await res.json();
-      if (data.success && data.token) {
-        localStorage.setItem('admin_token', data.token);
-        localStorage.setItem('admin_role', data.role);
-        localStorage.setItem('admin_permissions', JSON.stringify(data.permissions));
-        setUserRole(data.role);
-        setUserPermissions(data.permissions);
+
+      if (data.success) {
+        localStorage.setItem("admin_token", data.token);
+        localStorage.setItem("admin_role", data.role || "admin");
+        setUserRole(data.role || "admin");
         setIsAuthenticated(true);
       } else {
-        setError(data.error || data.message || 'Authentication failed');
+        setError(data.error || "Authentication failed");
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError("Failed to connect to authentication server");
     } finally {
       setIsLoading(false);
     }
@@ -87,11 +69,8 @@ export default function LoginPage() {
   const handleLogout = () => {
     localStorage.removeItem("admin_token");
     localStorage.removeItem("admin_role");
-    localStorage.removeItem("admin_permissions");
     setIsAuthenticated(false);
-    setActiveTab('dashboard');
-    setUserRole('admin');
-    setUserPermissions([]);
+    setActiveTab("dashboard");
   };
 
   if (isCheckingAuth) {
@@ -104,25 +83,21 @@ export default function LoginPage() {
 
   if (!isAuthenticated) {
     return (
-      <motion.div
-        className="min-h-screen bg-gray-50 dark:bg-gray-900 midnight:bg-black flex items-center justify-center p-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
+      <motion.div 
+        className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 midnight:bg-black p-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
       >
-        <div className="w-full max-w-md bg-white/60 dark:bg-slate-900/60 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
-              Admin Portal
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-2">
-              Enter your VTOP credentials to access the admin dashboard.
-            </p>
+        <div className="w-full max-w-md bg-white/60 dark:bg-slate-900/60 midnight:bg-white/[0.02] backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.12)] rounded-3xl p-8 space-y-6">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white midnight:text-white tracking-tight">Admin Portal</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">Sign in to manage AmazeCC services</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 mb-2">VTOP ID</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 mb-2">Username</label>
               <input
                 type="text"
                 value={username}
@@ -182,13 +157,31 @@ export default function LoginPage() {
         stats={stats}
       >
         {activeTab === 'dashboard' && (
-          <AdminLandingPage setActiveTab={setActiveTab} setActiveSubTab={setActiveSubTab} stats={stats} />
+          <AdminLandingPage setActiveTab={setActiveTab} setActiveSubTab={setActiveSubTab} />
         )}
         {(activeTab === 'qbank' || activeTab === 'buses' || activeTab === 'push') && (
           <AdminDashboard activeTab={activeTab} activeSubTab={activeSubTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
         )}
+        {activeTab === 'papers' && (
+          <PapersManager />
+        )}
+        {activeTab === 'questions' && (
+          <QuestionsManager />
+        )}
+        {activeTab === 'diagrams' && (
+          <DiagramsManager />
+        )}
+        {activeTab === 'storage' && (
+          <StorageManager />
+        )}
+        {activeTab === 'audit_logs' && (
+          <AuditLogsManager />
+        )}
         {activeTab === 'users' && (
           <AdminUsersTab currentUserRole={userRole} />
+        )}
+        {activeTab === 'settings' && (
+          <SettingsTab />
         )}
         {activeTab === 'profile' && (
           <div className="space-y-6">

@@ -69,7 +69,6 @@ export default function AdminQueueTab() {
   });
 
   const handleStartOCR = async (paperId: string, model?: string) => {
-    console.log("🚀 handleStartOCR: paperId =", paperId, "model =", model);
     setProcessingId(paperId);
     try {
       const res = await apiFetch("/api/admin/ocr", { 
@@ -509,7 +508,6 @@ export default function AdminQueueTab() {
                             <select 
                               value={selectedModels[p.source_id] || p.ocr_model || "qwen2.5vl:3b"} 
                               onChange={(e) => {
-                                console.log("🚀 Model select onChange: paperId =", p.source_id, "val =", e.target.value);
                                 setSelectedModels(prev => ({ ...prev, [p.source_id]: e.target.value }));
                               }}
                               className="relative z-10 cursor-pointer pointer-events-auto shrink-0 min-w-[140px] text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 text-gray-900 dark:text-gray-100 midnight:text-white"
