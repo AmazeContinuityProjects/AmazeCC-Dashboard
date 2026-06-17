@@ -103,11 +103,52 @@ export async function processPaper(paperId: string, fileUrl: string, db: PgClien
   
   let buffer: Buffer;
   try {
-    const response = await axios.get(directUrl, { 
-      responseType: 'arraybuffer',
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
-    });
-    buffer = Buffer.from(response.data);
+    if (fileUrl.includes('r2.cloudflarestorage.com')) {
+      await updateOcrStatus(db, paperId, 12, `Detected Cloudflare R2 URL. Downloading via AWS SDK S3Client...`);
+      const urlObj = new URL(fileUrl);
+      let key = urlObj.pathname;
+      if (key.startsWith('/')) {
+        key = key.substring(1);
+      }
+      
+      const bucketName = process.env.R2_BUCKET_NAME || 'amazecc-papers';
+      if (key.startsWith(`${bucketName}/`)) {
+        key = key.substring(bucketName.length + 1);
+      }
+      
+      const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+      const s3Client = new S3Client({
+        region: 'auto',
+        endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        credentials: {
+          accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+          secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+        },
+      });
+
+      const data = await s3Client.send(
+        new GetObjectCommand({
+          Bucket: bucketName,
+          Key: key,
+        })
+      );
+      
+      if (!data.Body) {
+        throw new Error('Empty body returned from S3 GetObjectCommand');
+      }
+
+      const chunks: any[] = [];
+      for await (const chunk of data.Body as any) {
+        chunks.push(chunk);
+      }
+      buffer = Buffer.concat(chunks);
+    } else {
+      const response = await axios.get(directUrl, { 
+        responseType: 'arraybuffer',
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+      });
+      buffer = Buffer.from(response.data);
+    }
   } catch (downloadErr: any) {
     await updateOcrStatus(db, paperId, 100, `Failed to download PDF: ${downloadErr.message}`);
     throw downloadErr;

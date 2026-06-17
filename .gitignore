@@ -50,3 +50,5 @@ certificates
 .open-next
 .wrangler
 .env*
+env.local
+scripts/ocr-worker/node_modules/

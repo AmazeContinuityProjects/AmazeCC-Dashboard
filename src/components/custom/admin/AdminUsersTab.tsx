@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
 import { GlassCard, GlassButton, GlassInput, SectionHeader, StatusBadge, EmptyState, LoadingSpinner } from '@/components/custom/admin/AdminUI';
-import { UserPlus, Trash2, Shield, ShieldCheck, UserX, RefreshCcw } from 'lucide-react';
+import { UserPlus, Trash2, Shield, ShieldCheck, UserX, RefreshCcw, AlertCircle } from 'lucide-react';
 
 interface AdminUser {
   username: string;
@@ -179,84 +179,81 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <SectionHeader title="User Management" description="Add, remove, and manage admin users" />
-        <div className="flex gap-2">
-          <GlassButton onClick={fetchUsers} variant="secondary" className="flex items-center gap-2">
-            <RefreshCcw className="w-4 h-4" />
-            Refresh
-          </GlassButton>
-          <GlassButton onClick={() => setShowAddForm(!showAddForm)} variant="primary" className="flex items-center gap-2">
-            <UserPlus className="w-4 h-4" />
-            Add User
-          </GlassButton>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <SectionHeader 
+        title="Admin Management" 
+        description="Add, remove, and manage administrative users and their access levels." 
+        breadcrumbs={[{ label: 'Admin', href: '#' }, { label: 'System', href: '#' }, { label: 'Users', active: true }]}
+        action={
+          <div className="flex gap-2">
+            <GlassButton onClick={fetchUsers} variant="secondary" className="flex items-center gap-2">
+              <RefreshCcw className="w-4 h-4" />
+              Refresh
+            </GlassButton>
+            <GlassButton onClick={() => setShowAddForm(!showAddForm)} variant="primary" className="flex items-center gap-2">
+              <UserPlus className="w-4 h-4" />
+              Add User
+            </GlassButton>
+          </div>
+        }
+      />
 
       {error && (
-        <div className="p-3 bg-red-50/80 dark:bg-red-900/20 midnight:bg-red-900/20 text-red-600 dark:text-red-400 midnight:text-red-400 border border-red-200/50 dark:border-red-800/50 midnight:border-red-800/50 rounded-xl text-sm">
+        <div className="p-4 bg-red-50/80 dark:bg-red-900/20 midnight:bg-red-900/10 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-800/50 rounded-2xl text-sm font-bold uppercase tracking-widest flex items-center gap-3">
+          <AlertCircle className="w-5 h-5" />
           {error}
         </div>
       )}
 
       {showAddForm && (
-        <GlassCard>
-          <form onSubmit={handleAddUser} className="space-y-4">
-            <div className="flex items-center gap-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white midnight:text-white">Add New User</h3>
+        <GlassCard innerGlow className="border-blue-500/10">
+          <form onSubmit={handleAddUser} className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Provision New Admin</h3>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 midnight:text-gray-400 midnight:hover:text-gray-200"
+                className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 Cancel
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 mb-2">
-                  VTOP Username
-                </label>
-                <GlassInput
-                  type="text"
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder="Enter VTOP ID (e.g., 21BCE1234)"
-                  required
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <GlassInput
+                label="VTOP Username"
+                type="text"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="e.g., 21BCE1234"
+                required
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 mb-2">
-                  Role
-                </label>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 tracking-tight">Access Role</label>
                 <select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value as 'admin' | 'superadmin')}
-                  className="w-full px-4 py-3 rounded-xl border bg-white/80 dark:bg-slate-800/80 midnight:bg-white/[0.06] backdrop-blur-xl text-gray-900 dark:text-gray-100 midnight:text-white border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                  className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-950 midnight:bg-black text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none font-bold text-xs uppercase tracking-widest"
                 >
-                  <option value="admin">Admin</option>
-                  <option value="superadmin">Superadmin</option>
+                  <option value="admin">Standard Admin</option>
+                  <option value="superadmin">Super Administrator</option>
                 </select>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 mb-2">
-                Permissions
-              </label>
+            <div className="space-y-3">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 tracking-tight">Scope Permissions</label>
               <div className="flex flex-wrap gap-2">
                 {AVAILABLE_PERMISSIONS.map((perm) => (
                   <button
                     key={perm.id}
                     type="button"
                     onClick={() => handleTogglePermission(perm.id)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                       newPermissions.includes(perm.id)
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 dark:bg-gray-800 midnight:bg-gray-800 text-gray-700 dark:text-gray-300 midnight:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 midnight:hover:bg-gray-700'
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                        : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700'
                     }`}
                   >
                     {perm.label}
@@ -265,12 +262,12 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
               <GlassButton type="button" onClick={() => setShowAddForm(false)} variant="secondary">
                 Cancel
               </GlassButton>
               <GlassButton type="submit" variant="primary" disabled={addingUser || !newUsername.trim()}>
-                {addingUser ? 'Adding...' : 'Add User'}
+                {addingUser ? 'Provisioning...' : 'Confirm Provisioning'}
               </GlassButton>
             </div>
           </form>
@@ -278,7 +275,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
       )}
 
       {loading ? (
-        <LoadingSpinner />
+        <div className="py-20 flex justify-center"><LoadingSpinner size="lg" /></div>
       ) : users.length === 0 ? (
         <EmptyState
           icon={<UserPlus className="w-12 h-12" />}
@@ -286,67 +283,55 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
           description="Add your first admin user to get started."
         />
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-4">
           {users.map((user) => (
-            <GlassCard key={user.username}>
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+            <GlassCard key={user.username} innerGlow className="border-gray-100 dark:border-gray-800 hover:scale-[1.01] transition-transform">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform ${
                     user.role === 'superadmin'
-                      ? 'bg-purple-50 dark:bg-purple-900/30 midnight:bg-purple-900/30'
-                      : 'bg-blue-50 dark:bg-blue-900/30 midnight:bg-blue-900/30'
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                   }`}>
                     {user.role === 'superadmin' ? (
-                      <ShieldCheck className="w-6 h-6 text-purple-600 dark:text-purple-400 midnight:text-purple-400" />
+                      <ShieldCheck className="w-7 h-7" />
                     ) : (
-                      <Shield className="w-6 h-6 text-blue-600 dark:text-blue-400 midnight:text-blue-400" />
+                      <Shield className="w-7 h-7" />
                     )}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900 dark:text-white midnight:text-white">{user.username}</h3>
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-xl font-black text-gray-900 dark:text-white leading-none tracking-tight">{user.username}</h3>
                       <StatusBadge status={user.role === 'superadmin' ? 'success' : 'info'} />
                       {!user.is_active && <StatusBadge status="error" />}
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">
-                      Added by {user.added_by} • {new Date(user.created_at).toLocaleDateString()}
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-2">
+                      Authorized by {user.added_by} &bull; {new Date(user.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 ml-auto md:ml-0">
                   {editingUser === user.username ? (
                     <>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1 mr-4">
                         {AVAILABLE_PERMISSIONS.map((perm) => (
                           <button
                             key={perm.id}
                             type="button"
                             onClick={() => handleEditTogglePermission(perm.id)}
-                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
                               editPermissions.includes(perm.id)
                                 ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 dark:bg-gray-800 midnight:bg-gray-800 text-gray-600 dark:text-gray-400 midnight:text-gray-400'
+                                : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400'
                             }`}
                           >
                             {perm.label}
                           </button>
                         ))}
                       </div>
-                      <GlassButton
-                        onClick={() => handleUpdatePermissions(user.username)}
-                        variant="primary"
-                        className="text-xs"
-                      >
-                        Save
-                      </GlassButton>
-                      <GlassButton
-                        onClick={() => setEditingUser(null)}
-                        variant="secondary"
-                        className="text-xs"
-                      >
-                        Cancel
-                      </GlassButton>
+                      <GlassButton onClick={() => handleUpdatePermissions(user.username)} variant="primary" size="sm">Save</GlassButton>
+                      <GlassButton onClick={() => setEditingUser(null)} variant="secondary" size="sm">Cancel</GlassButton>
                     </>
                   ) : (
                     <>
@@ -356,34 +341,40 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
                           setEditPermissions(user.permissions);
                         }}
                         variant="secondary"
-                        className="text-xs"
+                        size="sm"
+                        className="text-[10px] font-black uppercase tracking-widest"
                       >
-                        Edit Perms
+                        Edit Policy
                       </GlassButton>
-                      <GlassButton
+                      <button
                         onClick={() => handleToggleActive(user.username, user.is_active)}
-                        variant={user.is_active ? 'secondary' : 'primary'}
-                        className="text-xs"
+                        className={`p-2.5 rounded-xl transition-all ${
+                          user.is_active 
+                            ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100' 
+                            : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
+                        }`}
+                        title={user.is_active ? "Suspend User" : "Activate User"}
                       >
-                        {user.is_active ? <UserX className="w-3 h-3" /> : 'Activate'}
-                      </GlassButton>
-                      <GlassButton
+                        {user.is_active ? <UserX className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+                      </button>
+                      <button
                         onClick={() => handleDeleteUser(user.username)}
-                        variant="danger"
-                        className="text-xs"
+                        className="p-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 transition-all"
+                        title="Revoke Access"
                       >
-                        <Trash2 className="w-3 h-3" />
-                      </GlassButton>
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </>
                   )}
                 </div>
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-1">
+              <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-2">
+                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest self-center mr-2">Scope:</span>
                 {user.permissions.map((perm) => (
                   <span
                     key={perm}
-                    className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-800 midnight:bg-gray-800 text-gray-600 dark:text-gray-400 midnight:text-gray-400"
+                    className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] bg-gray-50 dark:bg-slate-900 text-gray-500 border border-gray-100 dark:border-gray-800"
                   >
                     {perm}
                   </span>
