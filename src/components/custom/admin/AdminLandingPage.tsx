@@ -1,8 +1,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Bus, FileText, ShieldCheck, TrendingUp, Clock, CheckCircle, AlertTriangle, Users, Bell } from 'lucide-react';
+import { MessageSquare, Bus, FileText, ShieldCheck, TrendingUp, Clock, CheckCircle, AlertTriangle, Users, Bell, Database, RefreshCw, Server } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
-import { GlassCard, SectionHeader, LoadingSpinner } from '@/components/custom/admin/AdminUI';
+import { GlassCard, SectionHeader, LoadingSpinner, GlassButton } from '@/components/custom/admin/AdminUI';
 
 interface DashboardStats {
   queueCount: number;
@@ -180,6 +180,91 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab, stats 
           </div>
         </div>
       </GlassCard>
+
+      {/* Database Status & Migration */}
+      <DatabaseSection />
     </div>
+  );
+}
+
+function DatabaseSection() {
+  const [dbStatus, setDbStatus] = useState<{ connected: boolean; db?: string; tables?: string[]; serverTime?: string; error?: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [migrating, setMigrating] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const checkDb = async () => {
+    setLoading(true); setMsg('');
+    try {
+      const res = await apiFetch('/api/admin/migrate');
+      const data = await res.json();
+      if (res.ok) setDbStatus(data);
+      else setDbStatus({ connected: false, error: data.error || 'Failed to check' });
+    } catch (e: any) {
+      setDbStatus({ connected: false, error: e.message });
+    } finally { setLoading(false); }
+  };
+
+  const runMigration = async () => {
+    setMigrating(true); setMsg('');
+    try {
+      const res = await apiFetch('/api/admin/migrate', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) { setMsg('✅ Migration completed: ' + data.message); await checkDb(); }
+      else setMsg('❌ ' + (data.error || 'Migration failed'));
+    } catch (e: any) {
+      setMsg('❌ ' + e.message);
+    } finally { setMigrating(false); }
+  };
+
+  useEffect(() => { checkDb(); }, []);
+
+  return (
+    <GlassCard>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-indigo-50/80 dark:bg-indigo-900/20 midnight:bg-indigo-900/30 rounded-xl text-indigo-500 dark:text-indigo-400 midnight:text-indigo-400">
+            <Database className="w-5 h-5" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white midnight:text-white">Database</h3>
+        </div>
+        <div className="flex gap-2">
+          <GlassButton variant="ghost" size="sm" onClick={checkDb} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </GlassButton>
+          <GlassButton variant="primary" size="sm" onClick={runMigration} disabled={migrating}>
+            <Server className="w-4 h-4 inline mr-1" />
+            {migrating ? 'Migrating...' : 'Run Migration'}
+          </GlassButton>
+        </div>
+      </div>
+      {msg && (
+        <p className="text-sm mb-3 text-gray-700 dark:text-gray-300 midnight:text-gray-300">{msg}</p>
+      )}
+      {dbStatus === null && loading ? (
+        <div className="flex justify-center py-4"><LoadingSpinner size="sm" /></div>
+      ) : dbStatus?.connected ? (
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${dbStatus.connected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className="text-gray-600 dark:text-gray-400 midnight:text-gray-400">Connected</span>
+            {dbStatus.db && <span className="font-mono text-gray-500 dark:text-gray-500 midnight:text-gray-500">({dbStatus.db})</span>}
+            <span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500 ml-auto">{dbStatus.serverTime ? new Date(dbStatus.serverTime).toLocaleString() : ''}</span>
+          </div>
+          {dbStatus.tables && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-1">Tables ({dbStatus.tables.length})</p>
+              <div className="flex flex-wrap gap-1.5">
+                {dbStatus.tables.map((t: string) => (
+                  <span key={t} className="px-2 py-0.5 text-[11px] font-medium rounded-md bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 text-gray-600 dark:text-gray-400 midnight:text-gray-400">{t}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="text-sm text-red-500">{dbStatus?.error || 'Could not connect to database'}</p>
+      )}
+    </GlassCard>
   );
 }

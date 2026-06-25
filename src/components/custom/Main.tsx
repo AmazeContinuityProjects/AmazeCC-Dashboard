@@ -9,6 +9,7 @@ const AdminLayout = dynamic(() => import('@/components/custom/admin/AdminLayout'
 const AdminLandingPage = dynamic(() => import('@/components/custom/admin/AdminLandingPage'), { ssr: false });
 const AdminDashboard = dynamic(() => import('@/components/custom/dayscholar/AdminDashboard'), { ssr: false });
 const AdminUsersTab = dynamic(() => import('@/components/custom/admin/AdminUsersTab'), { ssr: false });
+const FresherResourcesTab = dynamic(() => import('@/components/custom/admin/FresherResourcesTab'), { ssr: false });
 
 export default function LoginPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -185,6 +186,9 @@ export default function LoginPage() {
         )}
         {(activeTab === 'qbank' || activeTab === 'buses' || activeTab === 'push') && (
           <AdminDashboard activeTab={activeTab} activeSubTab={activeSubTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+        )}
+        {activeTab === 'fresher-resources' && (
+          <FresherResourcesTab />
         )}
         {activeTab === 'users' && (
           <AdminUsersTab currentUserRole={userRole} />
