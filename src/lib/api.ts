@@ -1,4 +1,4 @@
-export const API_BASE = "https://api.amazecc.com";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 
 export function apiUrl(path: string) {
   return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
