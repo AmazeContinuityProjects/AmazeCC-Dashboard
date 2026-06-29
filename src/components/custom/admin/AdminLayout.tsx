@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { BarChart3, MessageSquare, Bus, ShieldCheck, LogOut, User, Users, GraduationCap } from 'lucide-react';
+import { BarChart3, MessageSquare, Bus, ShieldCheck, LogOut, User, Users, GraduationCap, Building2 } from 'lucide-react';
 import { ThemeSwitcher } from '@/components/custom/ThemeSwitcher';
 
 const adminNavItems = [
@@ -8,7 +8,8 @@ const adminNavItems = [
   { id: 'qbank', label: 'Q-Bank', icon: MessageSquare, requiredPermission: null, subTabs: [{ id: 'queue', label: 'Queue' }, { id: 'courses', label: 'Courses' }] },
   { id: 'buses', label: 'Bus Database', icon: Bus, requiredPermission: null },
   { id: 'push', label: 'Push Broadcast', icon: ShieldCheck, requiredPermission: null },
-  { id: 'fresher-resources', label: 'Fresher Resources', icon: GraduationCap, requiredPermission: null },
+  { id: 'fresher-resources', label: 'Fresher Resources', icon: GraduationCap, requiredPermission: 'fresher-resources' },
+  { id: 'faculty-directories', label: 'Faculty Directories', icon: Building2, requiredPermission: 'faculty-directories' },
   { id: 'users', label: 'Users', icon: Users, requiredPermission: 'manage_users' },
 ];
 
