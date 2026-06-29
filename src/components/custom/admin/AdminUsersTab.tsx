@@ -23,6 +23,8 @@ const AVAILABLE_PERMISSIONS = [
   { id: 'qbank', label: 'Q-Bank', description: 'Manage question bank' },
   { id: 'buses', label: 'Bus Database', description: 'Manage bus routes' },
   { id: 'push', label: 'Push Broadcast', description: 'Send push notifications' },
+  { id: 'fresher-resources', label: 'Fresher Resources', description: 'Manage fresher resources' },
+  { id: 'faculty-directories', label: 'Faculty Directories', description: 'Manage faculty directories' },
   { id: 'users', label: 'User Management', description: 'Manage admin users' },
 ];
 
@@ -33,7 +35,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newRole, setNewRole] = useState<'admin' | 'superadmin'>('admin');
-  const [newPermissions, setNewPermissions] = useState<string[]>(['dashboard', 'qbank', 'buses', 'push']);
+  const [newPermissions, setNewPermissions] = useState<string[]>(['dashboard', 'qbank', 'buses', 'push', 'fresher-resources', 'faculty-directories']);
   const [addingUser, setAddingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
@@ -87,7 +89,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
         setUsers(prev => [data.user, ...prev]);
         setNewUsername('');
         setNewRole('admin');
-        setNewPermissions(['dashboard', 'qbank', 'buses', 'push']);
+        setNewPermissions(['dashboard', 'qbank', 'buses', 'push', 'fresher-resources', 'faculty-directories']);
         setShowAddForm(false);
       } else {
         setError(data.error || 'Failed to add user');
