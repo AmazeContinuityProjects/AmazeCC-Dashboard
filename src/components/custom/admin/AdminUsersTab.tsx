@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
 import { GlassCard, GlassButton, GlassInput, SectionHeader, StatusBadge, EmptyState, LoadingSpinner } from '@/components/custom/admin/AdminUI';
-import { UserPlus, Trash2, Shield, ShieldCheck, UserX, RefreshCcw, AlertCircle } from 'lucide-react';
+import { UserPlus, Trash2, Shield, ShieldCheck, UserX, RefreshCcw, AlertCircle, Download } from 'lucide-react';
+import { exportToExcel } from '@/lib/export';
 
 interface AdminUser {
   username: string;
@@ -22,6 +23,8 @@ const AVAILABLE_PERMISSIONS = [
   { id: 'qbank', label: 'Q-Bank', description: 'Manage question bank' },
   { id: 'buses', label: 'Bus Database', description: 'Manage bus routes' },
   { id: 'push', label: 'Push Broadcast', description: 'Send push notifications' },
+  { id: 'fresher-resources', label: 'Fresher Resources', description: 'Manage fresher resources' },
+  { id: 'faculty-directories', label: 'Faculty Directories', description: 'Manage faculty directories' },
   { id: 'users', label: 'User Management', description: 'Manage admin users' },
 ];
 
@@ -32,7 +35,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newRole, setNewRole] = useState<'admin' | 'superadmin'>('admin');
-  const [newPermissions, setNewPermissions] = useState<string[]>(['dashboard', 'qbank', 'buses', 'push']);
+  const [newPermissions, setNewPermissions] = useState<string[]>(['dashboard', 'qbank', 'buses', 'push', 'fresher-resources', 'faculty-directories']);
   const [addingUser, setAddingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
@@ -86,7 +89,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
         setUsers(prev => [data.user, ...prev]);
         setNewUsername('');
         setNewRole('admin');
-        setNewPermissions(['dashboard', 'qbank', 'buses', 'push']);
+        setNewPermissions(['dashboard', 'qbank', 'buses', 'push', 'fresher-resources', 'faculty-directories']);
         setShowAddForm(false);
       } else {
         setError(data.error || 'Failed to add user');
@@ -168,6 +171,18 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
     );
   };
 
+  const handleExport = () => {
+    const exportData = users.map(u => ({
+      Username: u.username,
+      Role: u.role,
+      Permissions: u.permissions.join(', '),
+      'Added By': u.added_by,
+      Status: u.is_active ? 'Active' : 'Inactive',
+      'Created At': new Date(u.created_at).toLocaleString()
+    }));
+    exportToExcel(exportData, 'admin_users');
+  };
+
   if (!isSuperadmin) {
     return (
       <EmptyState
@@ -186,6 +201,10 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
         breadcrumbs={[{ label: 'Admin', href: '#' }, { label: 'System', href: '#' }, { label: 'Users', active: true }]}
         action={
           <div className="flex gap-2">
+            <GlassButton onClick={handleExport} variant="secondary" className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Export
+            </GlassButton>
             <GlassButton onClick={fetchUsers} variant="secondary" className="flex items-center gap-2">
               <RefreshCcw className="w-4 h-4" />
               Refresh
@@ -334,7 +353,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
                       <GlassButton onClick={() => setEditingUser(null)} variant="secondary" size="sm">Cancel</GlassButton>
                     </>
                   ) : (
-                    <>
+                    <div className="flex gap-2 w-full sm:w-auto mt-2 lg:mt-0">
                       <GlassButton
                         onClick={() => {
                           setEditingUser(user.username);
@@ -364,7 +383,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
