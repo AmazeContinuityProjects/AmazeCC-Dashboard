@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { 
   RefreshCcw, User, LayoutGrid, MessageSquare, Bus, ShieldCheck, LogOut, 
   Menu, BarChart3, ChevronDown, Users, FileText, Database, History, 
-  Image, Settings, Circle, ChevronRight
+  Image, Settings, Circle, ChevronRight, GraduationCap, Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IconToggle } from '@/components/custom/toggle';
@@ -12,27 +12,29 @@ const navGroups = [
   {
     label: 'Overview',
     items: [
-      { id: 'dashboard', label: 'Overview', icon: BarChart3 },
-      { id: 'audit_logs', label: 'Audit Logs', icon: History },
+      { id: 'dashboard', label: 'Overview', icon: BarChart3, requiredPermission: null },
+      { id: 'audit_logs', label: 'Audit Logs', icon: History, requiredPermission: null },
     ]
   },
   {
     label: 'Content',
     items: [
-      { id: 'papers', label: 'Papers', icon: FileText },
-      { id: 'qbank', label: 'OCR Queue', icon: RefreshCcw, subTabs: [{ id: 'queue', label: 'Queue' }] },
-      { id: 'questions', label: 'Questions', icon: LayoutGrid },
-      { id: 'diagrams', label: 'Diagrams', icon: Image },
+      { id: 'papers', label: 'Papers', icon: FileText, requiredPermission: null },
+      { id: 'qbank', label: 'OCR Queue', icon: RefreshCcw, requiredPermission: null, subTabs: [{ id: 'queue', label: 'Queue' }] },
+      { id: 'questions', label: 'Questions', icon: LayoutGrid, requiredPermission: null },
+      { id: 'diagrams', label: 'Diagrams', icon: Image, requiredPermission: null },
+      { id: 'fresher-resources', label: 'Fresher Resources', icon: GraduationCap, requiredPermission: 'fresher-resources' },
+      { id: 'faculty-directories', label: 'Faculty Directories', icon: Building2, requiredPermission: 'faculty-directories' },
     ]
   },
   {
     label: 'System',
     items: [
-      { id: 'storage', label: 'Storage', icon: Database },
-      { id: 'buses', label: 'Bus Database', icon: Bus },
-      { id: 'push', label: 'Push Broadcast', icon: ShieldCheck },
-      { id: 'users', label: 'Users', icon: Users },
-      { id: 'settings', label: 'Settings', icon: Settings },
+      { id: 'storage', label: 'Storage', icon: Database, requiredPermission: null },
+      { id: 'buses', label: 'Bus Database', icon: Bus, requiredPermission: null },
+      { id: 'push', label: 'Push Broadcast', icon: ShieldCheck, requiredPermission: null },
+      { id: 'users', label: 'Users', icon: Users, requiredPermission: 'manage_users' },
+      { id: 'settings', label: 'Settings', icon: Settings, requiredPermission: null },
     ]
   }
 ];
@@ -47,11 +49,28 @@ interface AdminLayoutProps {
   username?: string;
   userRole?: 'superadmin' | 'admin';
   stats?: { queueCount: number; busRoutes: number; totalPapers: number; activeUsers: number };
+  userPermissions?: string[];
 }
 
-export default function AdminLayout({ children, activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLogout, username = 'Admin', userRole = 'admin', stats }: AdminLayoutProps) {
+export default function AdminLayout({ children, activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLogout, username = 'Admin', userRole = 'admin', stats, userPermissions = [] }: AdminLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const filteredNavGroups = navGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => {
+      if (!item.requiredPermission) return true;
+      if (userRole === 'superadmin') return true;
+      return userPermissions.includes(item.requiredPermission);
+    })
+  })).filter(group => group.items.length > 0);
+
+  const mobileNavItems = (() => {
+    const overviewItems = filteredNavGroups.find(g => g.label === 'Overview')?.items || [];
+    const contentItems = filteredNavGroups.find(g => g.label === 'Content')?.items || [];
+    const systemItems = filteredNavGroups.find(g => g.label === 'System')?.items || [];
+    return overviewItems.slice(0, 1).concat(contentItems.slice(0, 2), systemItems.slice(0, 1));
+  })();
 
   const navItemClass = (isActive: boolean) =>
     `relative flex items-center w-full gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
@@ -121,7 +140,7 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
 
         {/* Navigation Content */}
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-8 no-scrollbar">
-          {navGroups.map((group, gIdx) => (
+          {filteredNavGroups.map((group, gIdx) => (
             <div key={gIdx} className="space-y-2">
               {!isCollapsed && (
                 <motion.p 
@@ -226,7 +245,7 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 h-16 bg-white/70 dark:bg-slate-900/80 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-800/50 shadow-2xl rounded-2xl flex items-center justify-around px-2">
-        {navGroups[0].items.slice(0, 1).concat(navGroups[1].items.slice(0, 2), navGroups[2].items.slice(0, 1)).map((item) => (
+        {mobileNavItems.map((item) => (
           <button 
             key={item.id}
             onClick={() => setActiveTab(item.id)}
@@ -255,7 +274,7 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
           >
             <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full mx-auto mb-8" />
             <div className="space-y-8">
-              {navGroups.map((group, gIdx) => (
+              {filteredNavGroups.map((group, gIdx) => (
                 <div key={gIdx} className="space-y-4">
                   <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{group.label}</p>
                   <div className="grid grid-cols-2 gap-4">
@@ -292,9 +311,31 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
         className={`flex-1 min-w-0 transition-all duration-300 ${isCollapsed ? 'md:ml-20' : 'md:ml-[280px]'} pb-24 md:pb-0`}
       >
         <div className="w-full p-4 md:p-8 lg:p-12 animate-fadeIn">
+          {/* Mobile Sub-tabs (only visible on mobile if active tab has subtabs) */}
+          <div className="md:hidden mb-6">
+            {filteredNavGroups.flatMap(g => g.items).map(item => {
+              if (activeTab === item.id && item.subTabs) {
+                return (
+                  <div key={item.id} className="flex gap-2 p-1 bg-white/60 dark:bg-slate-900/60 midnight:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-800/50 midnight:border-white/10 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+                    {item.subTabs.map(sub => (
+                      <button
+                        key={sub.id}
+                        onClick={() => setActiveSubTab(sub.id)}
+                        className={`px-4 py-2 text-sm font-semibold rounded-xl whitespace-nowrap transition-all flex-1 ${activeSubTab === sub.id ? 'bg-white dark:bg-slate-800 midnight:bg-white/10 shadow-sm text-blue-600 dark:text-blue-400 midnight:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}
+                      >
+                        {sub.label}
+                      </button>
+                    ))}
+                  </div>
+                );
+              }
+              return null;
+            })}
+          </div>
           {children}
         </div>
       </main>
+
     </div>
   );
 }
