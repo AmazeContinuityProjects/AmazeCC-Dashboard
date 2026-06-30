@@ -11,6 +11,7 @@ const AdminDashboard = dynamic(() => import('@/components/custom/dayscholar/Admi
 const AdminUsersTab = dynamic(() => import('@/components/custom/admin/AdminUsersTab'), { ssr: false });
 const FresherResourcesTab = dynamic(() => import('@/components/custom/admin/FresherResourcesTab'), { ssr: false });
 const FacultyDirectoriesTab = dynamic(() => import('@/components/custom/admin/FacultyDirectoriesTab'), { ssr: false });
+const ClubsManagementTab = dynamic(() => import('@/components/custom/admin/ClubsManagementTab'), { ssr: false });
 
 export default function LoginPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -196,6 +197,9 @@ export default function LoginPage() {
         )}
         {activeTab === 'faculty-directories' && (
           <FacultyDirectoriesTab />
+        )}
+        {activeTab === 'clubs' && (
+          <ClubsManagementTab />
         )}
         {activeTab === 'profile' && (
           <div className="space-y-6">

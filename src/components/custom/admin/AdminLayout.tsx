@@ -11,6 +11,7 @@ const adminNavItems = [
   { id: 'fresher-resources', label: 'Fresher Resources', icon: GraduationCap, requiredPermission: 'fresher-resources' },
   { id: 'faculty-directories', label: 'Faculty Directories', icon: Building2, requiredPermission: 'faculty-directories' },
   { id: 'users', label: 'Users', icon: Users, requiredPermission: 'manage_users' },
+  { id: 'clubs', label: 'Clubs & Chapters', icon: Building2, requiredPermission: null },
 ];
 
 interface AdminLayoutProps {
