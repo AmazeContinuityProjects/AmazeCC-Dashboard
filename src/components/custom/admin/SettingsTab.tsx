@@ -6,6 +6,7 @@ import {
   Eye, EyeOff, CheckCircle, AlertTriangle, Gauge, Calendar
 } from 'lucide-react';
 import { GlassCard, SectionHeader, GlassButton, StatusBadge } from '@/components/custom/admin/AdminUI';
+import { ThemeSwitcher } from '@/components/custom/ThemeSwitcher';
 
 export default function SettingsTab() {
   const [modelType, setModelType] = useState('qwen2.5vl:3b');
@@ -157,6 +158,38 @@ export default function SettingsTab() {
             <div className="flex justify-between items-center py-2">
               <span className="text-gray-500">Secure Cookie Policies</span>
               <span className="font-semibold text-emerald-600 dark:text-emerald-400">Strict SameSite & HttpOnly</span>
+            </div>
+          </div>
+        </GlassCard>
+
+        {/* Theme Settings */}
+        <GlassCard className="space-y-4">
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Eye className="w-4 h-4 text-pink-500" /> Theme & Appearance
+          </h4>
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p className="text-xs font-semibold text-gray-900 dark:text-white">Theme Switcher</p>
+                <p className="text-[10px] text-gray-500">Toggle between light and dark mode with accent colors</p>
+              </div>
+              <ThemeSwitcher />
+            </div>
+
+            <div className="pt-3 border-t border-gray-100 dark:border-slate-800/80 space-y-2.5 text-xs">
+              <div className="flex justify-between items-center py-1">
+                <span className="text-gray-500">Current Mode</span>
+                <span className="font-semibold text-gray-900 dark:text-white capitalize">
+                  {typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 'Dark' : 'Light'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-gray-500">Accent Profile</span>
+                <span className="font-semibold text-gray-900 dark:text-white capitalize">
+                  {typeof window !== 'undefined' && document.documentElement.getAttribute('data-accent') || 'Ocean'}
+                </span>
+              </div>
             </div>
           </div>
         </GlassCard>
