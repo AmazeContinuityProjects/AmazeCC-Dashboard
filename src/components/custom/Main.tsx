@@ -12,6 +12,7 @@ const AdminUsersTab = dynamic(() => import('@/components/custom/admin/AdminUsers
 const FresherResourcesTab = dynamic(() => import('@/components/custom/admin/FresherResourcesTab'), { ssr: false });
 const FacultyDirectoriesTab = dynamic(() => import('@/components/custom/admin/FacultyDirectoriesTab'), { ssr: false });
 const ClubsManagementTab = dynamic(() => import('@/components/custom/admin/ClubsManagementTab'), { ssr: false });
+const CabShareAdminTab = dynamic(() => import('@/components/custom/admin/CabShareAdminTab'), { ssr: false });
 
 export default function LoginPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -200,6 +201,9 @@ export default function LoginPage() {
         )}
         {activeTab === 'clubs' && (
           <ClubsManagementTab />
+        )}
+        {activeTab === 'cabshare' && (
+          <CabShareAdminTab />
         )}
         {activeTab === 'profile' && (
           <div className="space-y-6">
