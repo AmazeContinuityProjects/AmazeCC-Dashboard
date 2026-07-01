@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { apiFetch, fetcher } from "@/lib/api";
 import useSWR from 'swr';
-import { Pencil, Trash2, Search, Plus, X, Save } from "lucide-react";
+import { Pencil, Trash2, Search, Plus, X, Save, Users, ShieldAlert, Globe, User } from "lucide-react";
 
 export default function ClubsManagementTab() {
   const [clubs, setClubs] = useState<any[]>([]);
@@ -10,6 +10,10 @@ export default function ClubsManagementTab() {
   const [error, setError] = useState('');
   
   const [editingClub, setEditingClub] = useState<any | null>(null);
+  const [managingRepsFor, setManagingRepsFor] = useState<any | null>(null);
+  const [reps, setReps] = useState<any[]>([]);
+  const [newRepVtopId, setNewRepVtopId] = useState('');
+  const [newRepRole, setNewRepRole] = useState('representative');
   const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -59,6 +63,63 @@ export default function ClubsManagementTab() {
     }
   };
 
+  const fetchReps = async (club_id: string) => {
+    try {
+      const res = await apiFetch(`/api/admin/clubs/representatives?club_id=${encodeURIComponent(club_id)}`);
+      const data = await res.json();
+      if (data.success) {
+        setReps(data.representatives || []);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddRep = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRepVtopId || !managingRepsFor) return;
+    
+    setIsSaving(true);
+    try {
+      const res = await apiFetch('/api/admin/clubs/representatives', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ club_id: managingRepsFor.club_id, vtop_id: newRepVtopId, role: newRepRole })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewRepVtopId('');
+        setNewRepRole('representative');
+        fetchReps(managingRepsFor.club_id);
+      } else {
+        alert(data.error || 'Failed to add representative');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error adding representative');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRemoveRep = async (vtop_id: string) => {
+    if (!confirm('Are you sure you want to remove this representative?')) return;
+    try {
+      const res = await apiFetch('/api/admin/clubs/representatives', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ club_id: managingRepsFor.club_id, vtop_id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchReps(managingRepsFor.club_id);
+      } else {
+        alert(data.error || 'Failed to remove representative');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error removing representative');
+    }
+  };
+
   const filteredClubs = clubs.filter(c => c.club_name.toLowerCase().includes(searchQuery.toLowerCase()) || c.club_id.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
@@ -102,38 +163,69 @@ export default function ClubsManagementTab() {
         ) : filteredClubs.length === 0 ? (
           <div className="p-8 text-center text-gray-500">No clubs found.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-gray-50 dark:bg-gray-900/50 midnight:bg-black/50 text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase font-semibold text-xs">
-                <tr>
-                  <th className="px-6 py-3">ID</th>
-                  <th className="px-6 py-3">Name</th>
-                  <th className="px-6 py-3">Website</th>
-                  <th className="px-6 py-3">POC</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700 midnight:divide-white/10">
-                {filteredClubs.map(club => (
-                  <tr key={club.club_id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 midnight:hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4 font-mono text-xs text-gray-500 midnight:text-gray-400">{club.club_id}</td>
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{club.club_name}</td>
-                    <td className="px-6 py-4 text-blue-500 hover:underline">
-                      {club.website ? <a href={club.website} target="_blank" rel="noreferrer">Link</a> : '-'}
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 midnight:text-gray-400">{club.poc || '-'}</td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => setEditingClub(club)}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg transition-colors"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredClubs.map(club => (
+              <div 
+                key={club.club_id} 
+                className="group relative bg-white dark:bg-gray-800/80 midnight:bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-700 midnight:border-white/10 p-5 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+              >
+                {/* Background Decoration */}
+                <div className="absolute top-0 right-0 p-32 bg-blue-500/5 dark:bg-blue-500/10 midnight:bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 transition-all duration-300 group-hover:bg-blue-500/10 dark:group-hover:bg-blue-500/20" />
+                
+                <div className="relative z-10 flex flex-col h-full">
+                  {/* Header */}
+                  <div className="mb-4">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-900/30 midnight:bg-blue-900/20 text-blue-600 dark:text-blue-400 midnight:text-blue-300 text-xs font-semibold mb-3 tracking-wide">
+                      {club.club_id}
+                    </span>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white midnight:text-white leading-tight">
+                      {club.club_name}
+                    </h3>
+                  </div>
+
+                  {/* Body Details */}
+                  <div className="flex-1 space-y-3 mb-6">
+                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300 midnight:text-gray-300">
+                      <Globe className="w-4 h-4 text-gray-400 midnight:text-gray-500 flex-shrink-0" />
+                      {club.website ? (
+                        <a href={club.website} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 midnight:text-blue-400 hover:underline truncate">
+                          {club.website.replace(/^https?:\/\//, '')}
+                        </a>
+                      ) : (
+                        <span className="opacity-50 italic">No website</span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300 midnight:text-gray-300">
+                      <User className="w-4 h-4 text-gray-400 midnight:text-gray-500 flex-shrink-0" />
+                      <span className="truncate">{club.poc || <span className="opacity-50 italic">No POC</span>}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700/50 midnight:border-white/10 mt-auto">
+                    <button
+                      onClick={() => setEditingClub(club)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 midnight:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 midnight:hover:bg-blue-900/20 rounded-xl transition-colors"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      Edit Details
+                    </button>
+                    <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 midnight:bg-white/10 mx-2" />
+                    <button
+                      onClick={() => {
+                        setManagingRepsFor(club);
+                        fetchReps(club.club_id);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 midnight:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 midnight:hover:bg-purple-900/20 rounded-xl transition-colors"
+                    >
+                      <Users className="w-4 h-4" />
+                      Representatives
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -215,6 +307,60 @@ export default function ClubsManagementTab() {
                 <Save className="w-4 h-4" />
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {managingRepsFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 midnight:bg-slate-900 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-xl">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700 midnight:border-white/10 bg-gray-50 dark:bg-gray-900/50 midnight:bg-black/50">
+              <div>
+                <h3 className="font-bold text-lg text-gray-900 dark:text-white midnight:text-white">
+                  Representatives
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">For {managingRepsFor.club_name}</p>
+              </div>
+              <button onClick={() => setManagingRepsFor(null)} className="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 bg-gray-200 dark:bg-gray-700 midnight:bg-white/10 midnight:hover:bg-white/20 rounded-full transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+              <form onSubmit={handleAddRep} className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <input required type="text" value={newRepVtopId} onChange={e => setNewRepVtopId(e.target.value)} className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 transition-colors text-gray-900 dark:text-white midnight:text-white uppercase" placeholder="VTOP Reg No. (e.g. 21BCE0000)" />
+                  <select value={newRepRole} onChange={e => setNewRepRole(e.target.value)} className="px-3 py-2 bg-gray-50 dark:bg-gray-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 transition-colors text-gray-900 dark:text-white midnight:text-white">
+                    <option value="representative">Representative</option>
+                    <option value="super-club-rep">Super Rep</option>
+                  </select>
+                  <button type="submit" disabled={isSaving} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2">
+                    <Plus className="w-4 h-4" /> Add
+                  </button>
+                </div>
+              </form>
+
+              {reps.length > 0 ? (
+                <div className="space-y-2">
+                  {reps.map(rep => (
+                    <div key={rep.vtop_id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 midnight:bg-black/50 rounded-lg border border-gray-100 dark:border-gray-800 midnight:border-white/10">
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white midnight:text-white">{rep.vtop_id}</p>
+                        <p className="text-xs text-gray-500">Role: <span className="capitalize">{rep.role}</span> &bull; Assigned by {rep.assigned_by}</p>
+                      </div>
+                      <button onClick={() => handleRemoveRep(rep.vtop_id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-6 text-gray-500 text-sm">
+                  <ShieldAlert className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>No representatives assigned yet.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
