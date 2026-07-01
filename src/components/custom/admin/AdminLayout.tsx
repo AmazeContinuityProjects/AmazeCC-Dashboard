@@ -20,7 +20,7 @@ const navGroups = [
     label: 'Content',
     items: [
       { id: 'papers', label: 'Papers', icon: FileText, requiredPermission: null },
-      { id: 'qbank', label: 'OCR Queue', icon: RefreshCcw, requiredPermission: null, subTabs: [{ id: 'queue', label: 'Queue' }] },
+      { id: 'qbank', label: 'OCR Queue', icon: RefreshCcw, requiredPermission: null, subTabs: [{ id: 'queue', label: 'Queue' }, { id: 'courses', label: 'Courses' }] },
       { id: 'questions', label: 'Questions', icon: LayoutGrid, requiredPermission: null },
       { id: 'diagrams', label: 'Diagrams', icon: Image, requiredPermission: null },
       { id: 'fresher-resources', label: 'Fresher Resources', icon: GraduationCap, requiredPermission: 'fresher-resources' },
@@ -32,8 +32,10 @@ const navGroups = [
     items: [
       { id: 'storage', label: 'Storage', icon: Database, requiredPermission: null },
       { id: 'buses', label: 'Bus Database', icon: Bus, requiredPermission: null },
+      { id: 'cabshare', label: 'Cab Share', icon: Bus, requiredPermission: null },
       { id: 'push', label: 'Push Broadcast', icon: ShieldCheck, requiredPermission: null },
       { id: 'users', label: 'Users', icon: Users, requiredPermission: 'manage_users' },
+      { id: 'clubs', label: 'Clubs & Chapters', icon: Building2, requiredPermission: null },
       { id: 'settings', label: 'Settings', icon: Settings, requiredPermission: null },
     ]
   }
