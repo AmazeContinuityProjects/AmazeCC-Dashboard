@@ -67,11 +67,11 @@ export function ThemeSwitcher() {
  <AnimatePresence>
  {isOpen && (
  <motion.div
- initial={{ opacity: 0, y: -10, scale: 0.95 }}
- animate={{ opacity: 1, y: 0, scale: 1 }}
- exit={{ opacity: 0, y: -10, scale: 0.95 }}
- transition={{ duration: 0.2 }}
-  className="absolute left-1/2 -translate-x-1/2 top-12 mt-1 w-44 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl overflow-hidden z-50 flex flex-col p-2 gap-1"
+  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+  animate={{ opacity: 1, y: 0, scale: 1 }}
+  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+  transition={{ duration: 0.2 }}
+  className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-44 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl overflow-hidden z-50 flex flex-col p-2 gap-1"
  >
  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-2 pt-1">Mode</p>
  <div className="flex gap-1">
