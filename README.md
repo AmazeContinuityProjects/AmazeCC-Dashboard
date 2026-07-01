@@ -1,135 +1,159 @@
-# AmazeCC
+# AmazeCC Dashboard
 
 <img src="public/icons/AmazeCC.png" width="300">
 
-**Live site:** [https://amaze-cc.vercel.app/](https://amaze-cc.vercel.app/)
+**Live site:** [https://admin.amazecc.com](https://admin.amazecc.com/)
 
-**Repository:** [https://github.com/SugeethJSA/UniCC](https://github.com/SugeethJSA/UniCC)
-**API Docs:** [https://api.uni-cc.site/docs](https://api.uni-cc.site/docs)
-**API Stats:** [https://api.uni-cc.site/stats](https://api.uni-cc.site/docs)
+A modern student dashboard for **VIT Chennai** — a "Student OS" that integrates with VTOP, Moodle, and more to provide attendance tracking, academics, hostel management, timetable sharing, and a community-driven question bank.
 
----
-
-## Overview
-
-AmazeCC is a web application designed specifically for students of a particular university.  
-It provides a clean, minimalist interface to access campus-related information such as attendance, grades, schedules, hostel status, and file storage.
-
-> Forked from [UniCC](https://github.com/Arya4930/UniCC) by Arya4930
-
-> Captcha solver logic is adapted from  
-> [ViBoot-Enhanced](https://github.com/arshsaxena/ViBoot-Enhanced/blob/main/js/captcha/captchaparser.js)
+> **Note:** This project is not affiliated with VIT or VTOP. It is a third-party convenience layer built for students.
 
 ---
 
-## Sister Project
+## Features
 
-**ParentsCC** is a companion project built specifically for **parents**.  
-It is a **stripped-down version of UniCC**, focusing only on essential information in a simpler and more accessible interface.
-
-- **Repository:** [https://github.com/Arya4930/ParentsCC](https://github.com/Arya4930/ParentsCC)
-- **Live site:** [https://parents.uni-cc.site/](https://parents.uni-cc.site/)
+- **VTOP Integration** — Login with VTOP credentials; automatic attendance, grade, timetable, exam schedule, and hostel data scraping
+- **Attendance Dashboard** — Subject-wise attendance, calendar/heat map views, OD tracker, attendance predictor
+- **Academics Hub** — Semester-wise grades, CGPA, marks, GPA predictor, curriculum viewer, FFCS timetable
+- **Hostel Module** — Mess menu, laundry slots, leave management
+- **Dayscholar Module** — Bus route finder with boarding points, bus fees
+- **Q-Bank** — Past papers archive, question browser, OCR pipeline for digitizing PDFs, admin review queue
+- **Social Features** — Share/import timetables via QR code, overlay friend schedules, find common free slots
+- **Moodle/LMS Sync** — Fetch assignments and deadlines from Moodle
+- **VITOL Notifications** — Online class schedules with push notification reminders
+- **Admin Panel** — User management, Q-Bank OCR pipeline, diagrams, storage, audit logs, push broadcasts
+- **File Upload** — Temporary file sharing via Backblaze B2 (auto-delete after 24h)
+- **PWA** — Installable, offline-capable, push notifications
+- **Theme System** — Dark/light mode with accent themes (Ocean, Forest, Lavender, Sunset)
+- **Calendar View** — Combined academic calendar, Moodle deadlines, OD hours, and timetable overlay
 
 ---
 
-## Backend Usage (Important)
+## Tech Stack
 
-### 🔹 Recommended: Use the Hosted Backend (Preferred)
+| Category | Technologies |
+|---|---|
+| **Framework** | Next.js 16 (App Router), React 19, TypeScript |
+| **Styling** | TailwindCSS v4, Radix UI, Framer Motion, Lucide icons |
+| **State & Data** | SWR, Jotai |
+| **Charts** | Recharts, react-circular-progressbar, react-heat-map |
+| **Backend Storage** | Supabase (PostgreSQL), Backblaze B2 (S3) |
+| **PWA** | Serwist (service worker), Web Push API (VAPID) |
+| **OCR** | Ollama-based worker (Qwen 2.5VL / Moondream) |
+| **Deploy** | Vercel, Netlify, Cloudflare Pages, GitHub Pages |
 
-Hosting your own backend is **not recommended** unless you specifically need to, as it requires:
-- A MongoDB database
-- A Backblaze B2 bucket for file storage
-
-Instead, you can directly use the **hosted UniCC backend API**: ```https://uniccapi.uni-cc.site/```
-To do this, modify the API base URL in: `src/components/custom/main.tsx` Change it to:
-```ts
-export const API_BASE = "https://uniccapi.uni-cc.site";
-```
 ---
-## Optional: Hosting Your Own Backend
-If you choose to host your own backend, create a .env file with the following variables:
-```
-MONGODB_URI=
 
-B2_ENDPOINT=
-B2_BUCKET_NAME=
-B2_ACCESS_KEY_ID=
-B2_SECRET_ACCESS_KEY=
-B2_REGION=
+## Getting Started
 
-ADMINS=
-ID_SALT=
+### Prerequisites
 
-SMTP_PASS=
-SMTP_USER=
-SMTP_HOST=
-```
-### Starting the backend
+- Node.js 20+
+- A Supabase project (for auth, DB, and storage)
+- A UniCC API backend ([repository](https://github.com/SugeethJSA/UniCC))
+
+### Installation
+
 ```bash
-npm run api-build
-npm run api-start
+git clone https://github.com/SugeethJSA/AmazeCC-Dashboard.git
+cd AmazeCC-Dashboard
+pnpm install
 ```
-> Note: MongoDB and Backblaze B2 must be configured correctly for the backend to function.
----
-## API Endpoints
-Each endpoint performs the function implied by its name.
-The backend exposes the following endpoints:
 
-```ts
-app.use("/api/status", statusRoutes);
-app.use("/api/calendar", calendarRoutes);
-app.use("/api/login", loginRoutes);
+### Environment Variables
 
-app.use("/api/hostel", hostelRoutes);        // Hostel / mess status
-app.use("/api/grades", gradesRoutes);        // Overall grades + CGPA
-app.use("/api/schedule", scheduleRoutes);
-app.use("/api/attendance", attendanceRoutes);
-app.use("/api/all-grades", allGradesRoutes); // Semester-wise grades
+Create a `.env` file (see `.env.example`):
 
-app.use("/api/files/upload/:userID", UploadFile);
-app.use("/api/files/fetch/:userID", fetchFiles);
-app.use("/api/files/delete/:userID/:fileID", deleteFile);
-app.use("/api/files/download/:userID/:fileID", downloadFile);
+```env
+ADMIN_PASSWORD="your_admin_password_here"
+DATABASE_URL="postgresql://user:password@host:5432/postgres"
+NEXT_PUBLIC_SUPABASE_URL=https://your_project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key_here
+VAPID_PRIVATE_KEY=your_vapid_private_key_here
+NEXT_PUBLIC_API_BASE=http://localhost:3005
+ADMIN_VTOP_IDS=ADMIN_ID_1,ADMIN_ID_2
 ```
-## Past Papers & Q-Bank
-The Q-Bank module supports uploading past papers and managing questions:
-- **PDF Link Upload & OCR Worker**: Admins can submit a PDF link and choose an Ollama model (e.g. Qwen 2.5VL or Moondream), and a background OCR worker converts the PDF and extracts questions.
-- **Direct JSON Upload**: Admins can toggle the upload modal to "Direct JSON Import" to bypass PDF link submission and OCR completely. Pasting a structured questions JSON array immediately imports it into the admin review queue under `PENDING_Q_APPROVAL` status.
+
+### Development
+
+```bash
+pnpm dev
+```
+
+Starts the dev server on **<https://localhost:3002>** (with HTTPS).
+
+### Build
+
+```bash
+pnpm build
+```
+
+Produces a static export in the `out/` directory.
 
 ---
 
-## Getting Started ( Frontend )
+## Deployment
 
-To run AmazeCC locally:
+| Platform | Notes |
+|---|---|
+| **Vercel** | Default config via `vercel.json` |
+| **Netlify** | Via `netlify.toml` (requires `@netlify/plugin-nextjs`) |
+| **Cloudflare Pages** | Via `open-next.config.ts` with `@opennextjs/cloudflare` |
+| **GitHub Pages** | CI workflow builds and deploys `./out` |
 
-1. **Clone the repository:**
+---
 
-   ```bash
-   git clone https://github.com/SugeethJSA/AmazeCC-Dashboard.git
-   cd AmazeCC-Dashboard
-   ```
-2. **Install dependencies:**
-   *(If a package manager like pnpm is used)*
+## Project Structure
 
-   ```bash
-   pnpm install
-   ```
-3. **Start the development server:**
-   *(This may vary based on setup)*
+```
+src/
+├── app/                  # Next.js App Router pages
+│   ├── page.tsx          # Main app entry (login → dashboard)
+│   ├── admin/            # Admin portal
+│   ├── upload/           # File upload page
+│   └── sw.ts             # Service worker
+├── components/
+│   ├── custom/
+│   │   ├── attendance/   # Attendance, calendar, timetable, OD tracker
+│   │   ├── Exams/        # Academics, grades, marks, GPA predictor, Moodle
+│   │   ├── Hostel/       # Mess, laundry, leave
+│   │   ├── dayscholar/   # Bus finder, fees, admin dashboard
+│   │   ├── social/       # QR sharing, friend timetable, free slots
+│   │   ├── qbank/        # Papers, questions, OCR upload, admin review
+│   │   └── admin/        # Admin panel components
+│   └── ui/               # Radix-based UI primitives
+├── data/                 # Static data (quick links, buses, changelog)
+├── hooks/                # Custom React hooks
+├── lib/                  # Utilities, API client, auth
+└── types/                # TypeScript type definitions
+```
 
-   ```bash
-   npx serve@latest out
-   ```
+---
+
+## Backend API
+
+This dashboard requires the **UniCC API** backend for VTOP data scraping:
+
+- **Repository:** [github.com/SugeethJSA/UniCC](https://github.com/SugeethJSA/UniCC)
+- **Hosted API:** `https://uniccapi.uni-cc.site`
+- **API Docs:** `https://api.uni-cc.site/docs`
+
+Set `NEXT_PUBLIC_API_BASE` in your `.env` to point to your backend instance.
+
+---
 
 ## Contributing
 
-Interested in contributing? Feel free to fork the repo and submit pull requests. Issues and feedback are welcome!
+Contributions are welcome! Please read our [Code of Conduct](CODE_OF_CONDUCT.md) and submit a pull request.
 
-Please make sure to read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+---
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+[MIT](LICENSE)
+
+---
 
 ## Contributors
 
