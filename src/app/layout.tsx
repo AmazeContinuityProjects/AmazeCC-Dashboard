@@ -36,7 +36,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const APP_NAME = "AmazeCC";
+const APP_NAME = "AmazeCC Admin";
 const APP_DESCRIPTION = "Showing data from VTOP in a clean and simple way.";
 
 export const metadata: Metadata = {
