@@ -172,7 +172,7 @@ Contributions are welcome! Please read our [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ## License
 
-[MIT](LICENSE)
+[GNU General Public License v3.0](LICENSE)
 
 ---
 
