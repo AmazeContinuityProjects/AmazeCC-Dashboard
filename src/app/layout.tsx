@@ -1,6 +1,6 @@
 import { Geist, Geist_Mono, Roboto, Outfit } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
-import { ThemeProvider } from "../components/themeprovider";
+import { ThemeProvider } from "@amazecontinuityprojects/amazeui";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import IconUpdater from "../components/custom/IconUpdater";
