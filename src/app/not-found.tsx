@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button } from "@amazecontinuityprojects/amazeui";
 import {
  Card,
  CardContent,
  CardDescription,
  CardHeader,
  CardTitle,
-} from "@/components/ui/card";
+} from "@amazecontinuityprojects/amazeui";
 
 const CHEPUS = [
  "/chepu/chepu_on_the_floor.png",

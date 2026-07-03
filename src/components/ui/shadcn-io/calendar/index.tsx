@@ -30,7 +30,7 @@ import {
  Popover,
  PopoverContent,
  PopoverTrigger,
-} from '@/components/ui/popover';
+} from '@amazecontinuityprojects/amazeui';
 import { cn } from '@/lib/utils';
 
 export type CalendarState = {

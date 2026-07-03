@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@amazecontinuityprojects/amazeui";
 import { Input } from "@/components/ui/input";
 import {
  Dropzone,
@@ -9,7 +9,6 @@ import {
  DropzoneEmptyState,
 } from "@/components/ui/shadcn-io/dropzone";
 import { API_BASE } from "@/lib/api";
-import LoginFooter from "@/components/custom/footer/LoginFooter";
 
 export default function UploadPage() {
  const [userID, setUserID] = useState("");
@@ -159,9 +158,7 @@ export default function UploadPage() {
  <p className="text-xs text-center text-gray-600 dark:text-gray-400 max-w-sm mt-2">
  If sending to mail, make sure to check your spam/junk folder in case the email doesn't appear in your inbox.
  </p>
- </main>
-
- <LoginFooter />
- </div>
+  </main>
+  </div>
  );
 }

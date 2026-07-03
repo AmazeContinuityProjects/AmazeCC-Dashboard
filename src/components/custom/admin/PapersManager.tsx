@@ -57,12 +57,10 @@ export default function PapersManager() {
  const [searchQuery, setSearchQuery] = useState('');
  const [statusFilter, setStatusFilter] = useState('ALL');
  const [importingPaperId, setImportingPaperId] = useState<string | null>(null);
- const [uploadingFileId, setUploadingFileId] = useState<string | null>(null);
- 
- // Review split-screen state
- const [selectedPaperForReview, setSelectedPaperForReview] = useState<Paper | null>(null);
- 
- // Metadata edit state
+  const [uploadingFileId, setUploadingFileId] = useState<string | null>(null);
+  const [selectedPaperForReview, setSelectedPaperForReview] = useState<Paper | null>(null);
+
+  // Metadata edit state
  const [editingPaperId, setEditingPaperId] = useState<string | null>(null);
  const [editForm, setEditForm] = useState({
  title: '',
@@ -244,22 +242,22 @@ export default function PapersManager() {
  return matchesSearch && (p.approval_status === 'OCR_QUEUED' || p.approval_status === 'OCR_PROCESSING' || p.approval_status === 'OCR_FAILED');
  }
  return matchesSearch && p.approval_status === statusFilter;
- });
+  });
 
- if (selectedPaperForReview) {
- return (
- <SplitScreenReview 
- paper={selectedPaperForReview} 
- onClose={() => {
- setSelectedPaperForReview(null);
- fetchPapers();
- }}
- onPublishSuccess={() => fetchPapers()}
- />
- );
- }
+  if (selectedPaperForReview) {
+    return (
+      <SplitScreenReview 
+        paper={selectedPaperForReview} 
+        onClose={() => {
+          setSelectedPaperForReview(null);
+          fetchPapers();
+        }}
+        onPublishSuccess={() => fetchPapers()}
+      />
+    );
+  }
 
- return (
+  return (
  <div className="space-y-8 animate-fade-in">
  <SectionHeader 
  title="Papers Directory" 
@@ -447,10 +445,11 @@ export default function PapersManager() {
 
  {/* Paper Action Panel */}
  {editingPaperId !== p.source_id && (
- <div className="flex flex-wrap items-center gap-2">
- <GlassButton size="sm" onClick={() => setSelectedPaperForReview(p)} className="font-black uppercase tracking-widest text-[10px]">
- <Eye className="w-3.5 h-3.5 inline mr-1.5" /> Review
- </GlassButton>
+  <div className="flex flex-wrap items-center gap-2">
+  <GlassButton size="sm" onClick={() => setSelectedPaperForReview(p)} className="font-black uppercase tracking-widest text-[10px]">
+  <Eye className="w-3.5 h-3.5 inline mr-1.5" /> Review
+  </GlassButton>
+
 
  {isRemoteUrl(p.file_url) && (
  <GlassButton 

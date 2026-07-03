@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Switch } from "@/components/ui/switch"
+import { Switch } from "@amazecontinuityprojects/amazeui"
 import { apiFetch } from "@/lib/api"
 
 function urlBase64ToUint8Array(base64String: string) {
