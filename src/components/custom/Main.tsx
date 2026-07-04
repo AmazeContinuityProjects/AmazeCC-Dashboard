@@ -19,6 +19,7 @@ const FresherResourcesTab = dynamic(() => import('@/components/custom/admin/Fres
 const FacultyDirectoriesTab = dynamic(() => import('@/components/custom/admin/FacultyDirectoriesTab'), { ssr: false });
 const ClubsManagementTab = dynamic(() => import('@/components/custom/admin/ClubsManagementTab'), { ssr: false });
 const CabShareAdminTab = dynamic(() => import('@/components/custom/admin/CabShareAdminTab'), { ssr: false });
+const TransportManager = dynamic(() => import('@/components/custom/admin/TransportManager'), { ssr: false });
 
 export default function LoginPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -185,8 +186,11 @@ export default function LoginPage() {
   {activeTab === 'dashboard' && (
   <AdminLandingPage setActiveTab={setActiveTab} setActiveSubTab={setActiveSubTab} />
   )}
-  {(activeTab === 'qbank' || activeTab === 'buses' || activeTab === 'push') && (
+  {(activeTab === 'qbank' || activeTab === 'push') && (
   <AdminDashboard activeTab={activeTab} activeSubTab={activeSubTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+  )}
+  {activeTab === 'buses' && (
+  <TransportManager />
   )}
   {activeTab === 'papers' && (
   <PapersManager />
