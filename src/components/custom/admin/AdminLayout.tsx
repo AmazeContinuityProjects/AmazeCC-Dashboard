@@ -34,7 +34,7 @@ const navGroups = [
     label: 'System',
     items: [
       { id: 'storage', label: 'Storage', icon: Database, requiredPermission: null },
-      { id: 'buses', label: 'Bus Database', icon: Bus, requiredPermission: null },
+      { id: 'buses', label: 'Transport', icon: Bus, requiredPermission: 'transport' },
       { id: 'cabshare', label: 'Cab Share', icon: Bus, requiredPermission: null },
       { id: 'push', label: 'Push Broadcast', icon: ShieldCheck, requiredPermission: null },
       { id: 'users', label: 'Users', icon: Users, requiredPermission: 'manage_users' },
