@@ -9,8 +9,7 @@ import {
   StatusBadge as AmazeStatusBadge, 
   Breadcrumbs as AmazeBreadcrumbs, 
   EmptyState as AmazeEmptyState, 
-  LoadingSpinner as AmazeLoadingSpinner,
-  SectionHeader as AmazeSectionHeader
+  LoadingSpinner as AmazeLoadingSpinner
 } from '@amazecontinuityprojects/amazeui';
 
 export const GlassCard = ({ children, className = '', hover = false, padding = 'p-5', innerGlow = false }: {
