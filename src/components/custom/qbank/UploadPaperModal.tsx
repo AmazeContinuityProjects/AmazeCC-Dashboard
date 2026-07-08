@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, UploadCloud, AlertCircle, Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { Input, Select, Textarea, Button, Checkbox, Card } from "@amazecontinuityprojects/amazeui";
 
 export default function UploadPaperModal({ isOpen, onClose, courses, username, isAdmin = false }) {
  const [courseCode, setCourseCode] = useState("");
@@ -182,28 +183,28 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
 
  return (
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
- <div className={`bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl w-full transition-all duration-300 ${isAdmin && uploadMode === "json" ? "max-w-2xl" : "max-w-md"}`}>
+ <div className={`bg-background border border-border/50 rounded-2xl shadow-2xl w-full transition-all duration-300 ${isAdmin && uploadMode === "json" ? "max-w-2xl" : "max-w-md"}`}>
  {/* Header */}
- <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-gray-800 ">
+ <div className="flex justify-between items-center p-5 border-b border-border/50">
  <div>
- <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 ">Upload Past Paper</h2>
+ <h2 className="text-xl font-bold text-foreground">Upload Past Paper</h2>
  {isAdmin && <span className="inline-block mt-1 bg-green-100 text-green-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full dark:bg-green-900/30 dark:text-green-400">Admin Mode</span>}
  </div>
- <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+ <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
  <X className="w-5 h-5" />
- </button>
+ </Button>
  </div>
 
  {/* Tabs for Admins */}
  {isAdmin && !success && (
- <div className="flex border-b border-gray-100 dark:border-gray-800 px-5">
+ <div className="flex border-b border-border/50 px-5">
  <button
  type="button"
  onClick={() => setUploadMode("file")}
  className={`flex-1 py-3 text-center text-sm font-semibold border-b-2 transition-all ${
  uploadMode === "file"
- ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
- : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+ ? "border-accent text-accent"
+ : "border-transparent text-muted-foreground hover:text-foreground"
  }`}
  >
  PDF Link Mode
@@ -213,8 +214,8 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  onClick={() => setUploadMode("json")}
  className={`flex-1 py-3 text-center text-sm font-semibold border-b-2 transition-all ${
  uploadMode === "json"
- ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
- : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+ ? "border-accent text-accent"
+ : "border-transparent text-muted-foreground hover:text-foreground"
  }`}
  >
  Direct JSON Import
@@ -227,8 +228,8 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mb-4">
  <UploadCloud className="w-8 h-8" />
  </div>
- <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Upload Successful!</h3>
- <p className="text-gray-500 dark:text-gray-400 text-sm">
+ <h3 className="text-lg font-bold text-foreground mb-2">Upload Successful!</h3>
+ <p className="text-muted-foreground text-sm">
  {uploadMode === "json"
  ? "Your paper and questions have been imported directly into the Admin review queue."
  : queueImmediately
@@ -236,7 +237,7 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  : "Your paper has been sent to the Admin queue for question extraction and approval."}
  </p>
  {uploadMode === "file" && selectedFile && (
- <div className="mt-4 p-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-gray-800 rounded-xl text-left w-full text-xs space-y-1 text-gray-600 dark:text-gray-300">
+ <div className="mt-4 p-3 bg-muted/50 border border-border/50 rounded-xl text-left w-full text-xs space-y-1 text-foreground">
  <p><strong>File Name:</strong> {selectedFile.name}</p>
  <p><strong>Size:</strong> {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
  <p><strong>Upload:</strong> <span className="text-green-600 font-semibold">Success</span></p>
@@ -249,92 +250,88 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  {/* Course Code */}
  <div>
  <div className="flex justify-between items-center mb-1">
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 ">Course Code</label>
+ <label className="block text-sm font-medium text-foreground">Course Code</label>
  <button
  type="button"
  onClick={() => setUseCustomCode(!useCustomCode)}
- className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+ className="flex items-center gap-1 text-xs text-accent hover:underline"
  >
  <Plus className="w-3 h-3" />
  {useCustomCode ? "Select from list" : "Enter custom code"}
  </button>
  </div>
  {useCustomCode ? (
- <input
+ <Input
  type="text"
  required
  value={customCourseCode}
- onChange={(e) => setCustomCourseCode(e.target.value)}
+ onChange={(e: any) => setCustomCourseCode(e.target.value)}
  placeholder="e.g. CSE2001"
- className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase placeholder:normal-case"
+ className="uppercase placeholder:normal-case"
  />
  ) : (
- <select
- required
+ <Select
  value={courseCode}
- onChange={(e) => setCourseCode(e.target.value)}
- className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
- >
- <option value="" disabled>Select a course</option>
- {courses.map((c: any) => (
- <option key={c.code} value={c.code}>
- {c.code} - {c.title}
- </option>
- ))}
- </select>
+ onChange={(e: any) => setCourseCode(e.target.value)}
+ options={[
+ { value: "", label: "Select a course" },
+ ...courses.map((c: any) => ({
+ value: c.code,
+ label: `${c.code} - ${c.title}`
+ }))
+ ]}
+ />
  )}
  </div>
 
  {/* Paper Type + Sem + Year */}
  <div className="grid grid-cols-3 gap-3">
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
- <select
+ <label className="block text-sm font-medium text-foreground mb-1">Type</label>
+ <Select
  value={paperType}
- onChange={(e) => setPaperType(e.target.value)}
- className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
- >
- <option>CAT 1</option>
- <option>CAT 2</option>
- <option>FAT</option>
- <option>Quiz</option>
- <option>Assignment</option>
- </select>
+ onChange={(e: any) => setPaperType(e.target.value)}
+ options={[
+ { value: "CAT 1", label: "CAT 1" },
+ { value: "CAT 2", label: "CAT 2" },
+ { value: "FAT", label: "FAT" },
+ { value: "Quiz", label: "Quiz" },
+ { value: "Assignment", label: "Assignment" }
+ ]}
+ />
  </div>
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sem</label>
- <select
+ <label className="block text-sm font-medium text-foreground mb-1">Sem</label>
+ <Select
  value={semester}
- onChange={(e) => setSemester(e.target.value)}
- className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
- >
- <option>Fall</option>
- <option>Winter</option>
- <option>Summer</option>
- </select>
+ onChange={(e: any) => setSemester(e.target.value)}
+ options={[
+ { value: "Fall", label: "Fall" },
+ { value: "Winter", label: "Winter" },
+ { value: "Summer", label: "Summer" }
+ ]}
+ />
  </div>
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Year</label>
- <input
+ <label className="block text-sm font-medium text-foreground mb-1">Year</label>
+ <Input
  type="number"
  required
  value={year}
- onChange={(e) => setYear(e.target.value)}
- className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+ onChange={(e: any) => setYear(e.target.value)}
  />
  </div>
  </div>
 
  {/* Title */}
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
- <input
+ <label className="block text-sm font-medium text-foreground mb-1">Title</label>
+ <Input
  type="text"
  required
  placeholder="e.g. Winter Semester FAT Question Paper"
  value={title}
- onChange={(e) => setTitle(e.target.value)}
- className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+ onChange={(e: any) => setTitle(e.target.value)}
  />
  </div>
 
@@ -343,17 +340,17 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  <>
  {/* Document Source Selection */}
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+ <label className="block text-sm font-medium text-foreground mb-1">
  Document Source
  </label>
- <div className="grid grid-cols-3 gap-2 p-1 bg-gray-100 dark:bg-slate-800 rounded-xl">
+ <div className="grid grid-cols-3 gap-2 p-1 bg-muted/50 rounded-xl">
  <button
  type="button"
  onClick={() => { setUploadSourceType("file"); setFileUrl(""); }}
  className={`py-1.5 text-xs font-semibold rounded-lg transition-all ${
  uploadSourceType === "file"
- ? "bg-white dark:bg-slate-900 text-gray-900 dark:text-white shadow-sm"
- : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+ ? "bg-background text-foreground shadow-sm border border-border/50"
+ : "text-muted-foreground hover:text-foreground"
  }`}
  >
  PDF Upload
@@ -363,8 +360,8 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  onClick={() => { setUploadSourceType("drive"); setSelectedFile(null); }}
  className={`py-1.5 text-xs font-semibold rounded-lg transition-all ${
  uploadSourceType === "drive"
- ? "bg-white dark:bg-slate-900 text-gray-900 dark:text-white shadow-sm"
- : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+ ? "bg-background text-foreground shadow-sm border border-border/50"
+ : "text-muted-foreground hover:text-foreground"
  }`}
  >
  Google Drive
@@ -374,8 +371,8 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  onClick={() => { setUploadSourceType("external"); setSelectedFile(null); }}
  className={`py-1.5 text-xs font-semibold rounded-lg transition-all ${
  uploadSourceType === "external"
- ? "bg-white dark:bg-slate-900 text-gray-900 dark:text-white shadow-sm"
- : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+ ? "bg-background text-foreground shadow-sm border border-border/50"
+ : "text-muted-foreground hover:text-foreground"
  }`}
  >
  External URL
@@ -386,10 +383,10 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  {/* Conditional Inputs */}
  {uploadSourceType === "file" && (
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+ <label className="block text-sm font-medium text-foreground mb-1">
  Upload PDF File (Cloudflare R2)
  </label>
- <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl hover:border-blue-500 dark:hover:border-blue-500 transition-colors relative">
+ <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-border/50 rounded-xl hover:border-accent transition-colors relative">
  <input
  type="file"
  accept="application/pdf"
@@ -410,34 +407,35 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
  />
  <div className="space-y-1 text-center pointer-events-none">
- <UploadCloud className="mx-auto h-10 w-10 text-gray-400" />
- <div className="flex text-sm text-gray-600 dark:text-gray-400">
- <span className="relative rounded-md font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-500">
+ <UploadCloud className="mx-auto h-10 w-10 text-muted-foreground" />
+ <div className="flex text-sm text-muted-foreground">
+ <span className="relative rounded-md font-semibold text-accent hover:brightness-110">
  {selectedFile ? "Change file" : "Upload a file"}
  </span>
  <p className="pl-1">or drag and drop</p>
  </div>
- <p className="text-xs text-gray-500">PDF up to 15MB</p>
+ <p className="text-xs text-muted-foreground">PDF up to 15MB</p>
  </div>
  </div>
 
  {selectedFile && (
- <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-xl flex items-center justify-between animate-fade-in">
+ <div className="mt-3 p-3 bg-accent/10 border border-accent/20 rounded-xl flex items-center justify-between animate-fade-in">
  <div className="min-w-0 flex-1">
- <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 truncate">
+ <p className="text-xs font-semibold text-accent truncate">
  {selectedFile.name}
  </p>
- <p className="text-[10px] text-blue-500">
+ <p className="text-[10px] text-accent/70">
  {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
  </p>
  </div>
- <button
- type="button"
+ <Button
+ variant="ghost"
+ size="icon"
  onClick={() => setSelectedFile(null)}
- className="p-1 text-blue-500 hover:text-blue-700 dark:hover:text-blue-300"
+ className="h-6 w-6 text-accent"
  >
  <X className="w-4 h-4" />
- </button>
+ </Button>
  </div>
  )}
  </div>
@@ -445,72 +443,69 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
 
  {uploadSourceType === "drive" && (
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+ <label className="block text-sm font-medium text-foreground mb-1">
  Google Drive Link
  </label>
- <input
+ <Input
  type="url"
  required
  value={fileUrl}
- onChange={(e) => setFileUrl(e.target.value)}
+ onChange={(e: any) => setFileUrl(e.target.value)}
  placeholder="https://drive.google.com/..."
- className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
  />
  </div>
  )}
 
  {uploadSourceType === "external" && (
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+ <label className="block text-sm font-medium text-foreground mb-1">
  External PDF URL
  </label>
- <input
+ <Input
  type="url"
  required
  value={fileUrl}
- onChange={(e) => setFileUrl(e.target.value)}
+ onChange={(e: any) => setFileUrl(e.target.value)}
  placeholder="https://example.com/document.pdf"
- className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
  />
  </div>
  )}
 
  {uploadSourceType !== "file" && (
- <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-lg p-3 flex items-start gap-3">
- <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 mt-0.5 shrink-0" />
- <div className="text-sm text-yellow-800 dark:text-yellow-200">
+ <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 flex items-start gap-3">
+ <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5 shrink-0" />
+ <div className="text-sm text-yellow-600 dark:text-yellow-400">
  <strong>Important:</strong> Please ensure the link is set to "Anyone with the link can view" before submitting. Your paper will be reviewed by an admin before being published to the Q-Bank.
  </div>
  </div>
  )}
 
  {isAdmin && (
- <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-gray-200 dark:border-gray-800 ">
- <label className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-gray-200 cursor-pointer">
- <input
- type="checkbox"
+ <div className="space-y-3 p-3 bg-muted/50 rounded-xl border border-border/50">
+ <div className="flex items-center gap-2">
+ <Checkbox
+ id="queue-immediately"
  checked={queueImmediately}
- onChange={(e) => setQueueImmediately(e.target.checked)}
- className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 cursor-pointer"
+ onCheckedChange={(checked) => setQueueImmediately(checked as boolean)}
  />
+ <label htmlFor="queue-immediately" className="text-sm font-semibold text-foreground cursor-pointer">
  Queue for OCR immediately
  </label>
+ </div>
  
  {queueImmediately && (
  <div className="pl-6 animate-fade-in space-y-1">
- <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400">
+ <label className="block text-[11px] font-medium text-muted-foreground">
  Select AI Vision Model
  </label>
- <select
+ <Select
  value={selectedModel}
- onChange={(e) => {
- setSelectedModel(e.target.value);
- }}
- className="relative z-10 cursor-pointer pointer-events-auto w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 "
- >
- <option value="qwen2.5vl:3b" className="bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 ">Qwen 3B (Precise - LaTeX & Formulas)</option>
- <option value="moondream" className="bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 ">Moondream (Fast - Low VRAM 4GB)</option>
- </select>
+ onChange={(e: any) => setSelectedModel(e.target.value)}
+ options={[
+ { value: "qwen2.5vl:3b", label: "Qwen 3B (Precise - LaTeX & Formulas)" },
+ { value: "moondream", label: "Moondream (Fast - Low VRAM 4GB)" }
+ ]}
+ />
  </div>
  )}
  </div>
@@ -521,24 +516,24 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  {/* JSON Question Upload */}
  <div>
  <div className="flex justify-between items-center mb-1">
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 ">
+ <label className="block text-sm font-medium text-foreground">
  Questions JSON Array
  </label>
  <button
  type="button"
  onClick={handleInsertTemplate}
- className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+ className="text-xs text-accent hover:underline"
  >
  Insert Sample JSON
  </button>
  </div>
- <textarea
+ <Textarea
  required
  rows={12}
  value={jsonText}
- onChange={(e) => setJsonText(e.target.value)}
+ onChange={(e: any) => setJsonText(e.target.value)}
  placeholder='[\n {\n "question_number": "1",\n "question_text": "...",\n "marks": 5\n }\n]'
- className="w-full px-3 py-2 font-mono text-xs border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+ className="font-mono text-xs"
  />
  </div>
  </>
@@ -546,7 +541,7 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
 
  {/* Submit */}
  <div className="pt-2">
- <button
+ <Button
  type="submit"
  disabled={
  uploading || 
@@ -557,19 +552,19 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  (uploadSourceType !== "file" && !fileUrl)
  ))
  }
- className="w-full flex justify-center items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 shadow-sm"
+ className="w-full"
  >
  {uploading ? (
  <>
- <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+ <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
  Uploading...
  </>
  ) : (
  <>
- <UploadCloud className="w-5 h-5" /> Submit Paper
+ <UploadCloud className="w-4 h-4 mr-2" /> Submit Paper
  </>
  )}
- </button>
+ </Button>
  </div>
  </form>
  )}
@@ -577,4 +572,3 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  </div>
  );
 }
-
