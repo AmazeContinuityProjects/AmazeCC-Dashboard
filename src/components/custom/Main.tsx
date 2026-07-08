@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { apiFetch, fetcher } from "@/lib/api";
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
+import { Input, Button } from "@amazecontinuityprojects/amazeui";
 
 const AdminLayout = dynamic(() => import('@/components/custom/admin/AdminLayout'), { ssr: false });
 const AdminLandingPage = dynamic(() => import('@/components/custom/admin/AdminLandingPage'), { ssr: false });
@@ -129,11 +130,11 @@ export default function LoginPage() {
   <form onSubmit={handleLogin} className="space-y-4">
   <div>
   <label className="block text-sm font-medium text-muted-foreground mb-2">Username</label>
-  <input
+  <Input
   type="text"
   value={username}
-  onChange={(e) => setUsername(e.target.value)}
-  className="w-full px-4 py-3 rounded-xl border bg-background/80 backdrop-blur-xl text-foreground placeholder-muted-foreground border-border/50 focus:ring-2 focus:ring-info/20 focus:border-info transition-all outline-none"
+  onChange={(e: any) => setUsername(e.target.value)}
+  className="w-full bg-background/80 backdrop-blur-xl"
   placeholder="Enter admin VTOP ID"
   required
   />
@@ -141,29 +142,29 @@ export default function LoginPage() {
 
   <div>
   <label className="block text-sm font-medium text-muted-foreground mb-2">Password</label>
-  <input
+  <Input
   type="password"
   value={password}
-  onChange={(e) => setPassword(e.target.value)}
-  className="w-full px-4 py-3 rounded-xl border bg-background/80 backdrop-blur-xl text-foreground placeholder-muted-foreground border-border/50 focus:ring-2 focus:ring-info/20 focus:border-info transition-all outline-none"
+  onChange={(e: any) => setPassword(e.target.value)}
+  className="w-full bg-background/80 backdrop-blur-xl"
   placeholder="••••••••"
   required
   />
   </div>
 
   {error && (
-  <div className="p-3 bg-danger/10 text-danger border border-danger/20 rounded-xl text-sm text-center backdrop-blur-xl">
+  <div className="p-3 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl text-sm text-center backdrop-blur-xl">
   {error}
   </div>
   )}
 
-  <button
+  <Button
   type="submit"
   disabled={isLoading}
-  className="w-full bg-accent text-accent-foreground font-medium py-3 rounded-xl transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110"
+  className="w-full"
   >
   {isLoading ? 'Authenticating...' : 'Login'}
-  </button>
+  </Button>
   </form>
   </div>
   </div>
