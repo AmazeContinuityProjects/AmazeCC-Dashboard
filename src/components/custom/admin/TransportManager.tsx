@@ -272,7 +272,7 @@ function RoutesSection() {
           </GlassCard>
         ))}
         {filtered.length === 0 && (
-          <EmptyState title="No routes found" description={search ? 'Try a different search term.' : 'No routes loaded. Run seed first.'} />
+          <EmptyState icon={<Search className="w-10 h-10 text-muted-foreground/50 mb-2" />} title="No routes found" description={search ? 'Try a different search term.' : 'No routes loaded. Run seed first.'} />
         )}
       </div>
     </div>
