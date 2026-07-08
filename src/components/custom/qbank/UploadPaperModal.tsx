@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { X, UploadCloud, AlertCircle, Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { Input, Select, Textarea, Button, Checkbox, Card } from "@amazecontinuityprojects/amazeui";
+import { Input, Select, Textarea, Button, Checkbox } from "@amazecontinuityprojects/amazeui";
 
 export default function UploadPaperModal({ isOpen, onClose, courses, username, isAdmin = false }) {
  const [courseCode, setCourseCode] = useState("");
