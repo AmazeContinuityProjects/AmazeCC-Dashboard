@@ -12,7 +12,8 @@ import StorageManager from "@/components/custom/admin/StorageManager";
 import AuditLogsManager from "@/components/custom/admin/AuditLogsManager";
 import SettingsTab from "@/components/custom/admin/SettingsTab";
 import AdminUsersTab from "@/components/custom/admin/AdminUsersTab";
-import GoRoboAdmin from "@/components/custom/admin/gorobo/GoRoboAdmin";
+import GoRoboInventory from "@/components/custom/admin/gorobo/GoRoboInventory";
+import GoRoboBillProcessor from "@/components/custom/admin/gorobo/GoRoboBillProcessor";
 import AmazeWallet from "@/components/custom/admin/gorobo/AmazeWallet";
 
 export default function AdminPage() {
@@ -75,11 +76,14 @@ export default function AdminPage() {
  {activeTab === 'users' && (
  <AdminUsersTab currentUserRole="superadmin" />
  )}
- {activeTab === 'gorobo' && (
- <GoRoboAdmin />
+ {(activeTab === 'gorobo' || activeTab === 'gorobo-inventory') && (
+   <GoRoboInventory />
+ )}
+ {(activeTab === 'gorobo-orders' || activeTab === 'gorobo-billing') && (
+   <GoRoboBillProcessor />
  )}
  {activeTab === 'gorobo-wallet' && (
- <AmazeWallet />
+   <AmazeWallet />
  )}
  {activeTab === 'settings' && (
  <SettingsTab />
