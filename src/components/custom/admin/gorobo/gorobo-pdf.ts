@@ -13,7 +13,7 @@ const DARK: [number, number, number] = [24, 24, 27];
 const MUTED: [number, number, number] = [110, 108, 118];
 const LIGHT: [number, number, number] = [244, 243, 246];
 
-const rs = (v: number) => `Rs. ${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const rs = (v: number) => `Rs. ${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
 interface Col {
   label: string;
@@ -89,7 +89,7 @@ function drawTable(
   doc.setTextColor(...MUTED);
   let x = startX;
   cols.forEach((c) => {
-    doc.text(c.label.toUpperCase(), x + pad, state.y + headerH - 8, { align: c.align === 'right' ? 'right' : 'left' });
+    doc.text(c.label.toUpperCase(), x + pad, state.y + headerH - 8, { align: c.align === 'right' ? 'right' : 'left', maxWidth: c.width - 2 * pad });
     x += c.width;
   });
   state.y += headerH;
@@ -105,7 +105,7 @@ function drawTable(
     x = startX;
     cols.forEach((c, ci) => {
       const text = String(row[ci] ?? '');
-      doc.text(text, x + pad, state.y + rowH - 8, { align: c.align === 'right' ? 'right' : 'left' });
+      doc.text(text, x + pad, state.y + rowH - 8, { align: c.align === 'right' ? 'right' : 'left', maxWidth: c.width - 2 * pad });
       x += c.width;
     });
     state.y += rowH;
@@ -135,7 +135,7 @@ function drawSummary(state: PdfPageState, rows: { label: string; value: string; 
 }
 
 export function downloadBomPdf(order: GoroboOrderJson) {
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const doc = new jsPDF({ unit: 'pt', format: [PAGE_W, PAGE_H] });
   const state: PdfPageState = { doc, y: 88, footerLabel: 'bill processor', page: 1 };
 
   drawHeader(state, 'GoRoBo — Bill of Materials / Final Quote', `Order ${order.id.slice(0, 8)} · ${order.status.toUpperCase()}`);
@@ -190,7 +190,7 @@ export function downloadBomPdf(order: GoroboOrderJson) {
 }
 
 export function downloadWalletPdf(summary: WalletSummary, transactions: WalletTransaction[]) {
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const doc = new jsPDF({ unit: 'pt', format: [PAGE_W, PAGE_H] });
   const state: PdfPageState = { doc, y: 88, footerLabel: 'amaze wallet', page: 1 };
 
   drawHeader(state, 'Amaze Wallet — Transaction History', 'Profit, GST and vendor cost ledger for GoRoBo');
