@@ -21,7 +21,8 @@ const FacultyDirectoriesTab = dynamic(() => import('@/components/custom/admin/Fa
 const ClubsManagementTab = dynamic(() => import('@/components/custom/admin/ClubsManagementTab'), { ssr: false });
 const CabShareAdminTab = dynamic(() => import('@/components/custom/admin/CabShareAdminTab'), { ssr: false });
 const TransportManager = dynamic(() => import('@/components/custom/admin/TransportManager'), { ssr: false });
-const GoRoboAdmin = dynamic(() => import('@/components/custom/admin/gorobo/GoRoboAdmin'), { ssr: false });
+const GoRoboInventory = dynamic(() => import('@/components/custom/admin/gorobo/GoRoboInventory'), { ssr: false });
+const GoRoboBillProcessor = dynamic(() => import('@/components/custom/admin/gorobo/GoRoboBillProcessor'), { ssr: false });
 const AmazeWallet = dynamic(() => import('@/components/custom/admin/gorobo/AmazeWallet'), { ssr: false });
 
 export default function LoginPage() {
@@ -195,11 +196,14 @@ export default function LoginPage() {
   {activeTab === 'buses' && (
   <TransportManager />
   )}
-  {activeTab === 'gorobo' && (
-  <GoRoboAdmin />
+  {(activeTab === 'gorobo' || activeTab === 'gorobo-inventory') && (
+    <GoRoboInventory />
+  )}
+  {(activeTab === 'gorobo-orders' || activeTab === 'gorobo-billing') && (
+    <GoRoboBillProcessor />
   )}
   {activeTab === 'gorobo-wallet' && (
-  <AmazeWallet />
+    <AmazeWallet />
   )}
   {activeTab === 'papers' && (
   <PapersManager />

@@ -39,6 +39,8 @@ export interface GoroboOrderJson {
   gstAmount: number;
   shipmentCost: number;
   notes: string;
+  deliveryMode?: string;
+  mapsUrl?: string;
   createdAt: string;
 }
 
