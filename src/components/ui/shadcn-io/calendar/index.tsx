@@ -139,16 +139,17 @@ const Combobox = ({
  </PopoverTrigger>
  <PopoverContent className="w-40 p-0">
  <Command
+ className=""
  filter={(value, search) => {
  const label = data.find((item) => item.value === value)?.label;
 
  return label?.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
  }}
  >
- <CommandInput placeholder={labels.search} />
- <CommandList>
- <CommandEmpty>{labels.empty}</CommandEmpty>
- <CommandGroup>
+ <CommandInput className="" placeholder={labels.search} />
+ <CommandList className="">
+ <CommandEmpty className="">{labels.empty}</CommandEmpty>
+ <CommandGroup className="">
  {data.map((item) => (
  <CommandItem
  className="capitalize"
