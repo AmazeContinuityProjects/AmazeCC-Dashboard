@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { 
   RefreshCcw, User, Users, LayoutGrid, MessageSquare, Bus, ShieldCheck, LogOut, 
   Menu, BarChart3, ChevronDown, FileText, Database, History, 
-  Image, Settings, GraduationCap, Building2
+  Image, Settings, GraduationCap, Building2, Cpu, Wallet
 } from 'lucide-react';
 import { 
   Sidebar as ReusableSidebar, 
@@ -28,6 +28,13 @@ const navGroups = [
       { id: 'diagrams', label: 'Diagrams', icon: Image, requiredPermission: null },
       { id: 'fresher-resources', label: 'Fresher Resources', icon: GraduationCap, requiredPermission: 'fresher-resources' },
       { id: 'faculty-directories', label: 'Faculty Directories', icon: Building2, requiredPermission: 'faculty-directories' },
+    ]
+  },
+  {
+    label: 'GoRoBo',
+    items: [
+      { id: 'gorobo', label: 'GoRoBo', icon: Cpu, requiredPermission: 'gorobo' },
+      { id: 'gorobo-wallet', label: 'Amaze Wallet', icon: Wallet, requiredPermission: 'gorobo' },
     ]
   },
   {
@@ -119,7 +126,7 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
               )}
             </div>
             <div className="flex items-center gap-1">
-              {!isCollapsed && <ThemeSwitcher />}
+              {!isCollapsed && <ThemeSwitcher className="" />}
               <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-1.5 rounded-lg hover:bg-accent/10 transition-colors text-muted-foreground">
                 <Menu className="w-4 h-4" />
               </button>

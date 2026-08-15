@@ -25,6 +25,7 @@ const AVAILABLE_PERMISSIONS = [
  { id: 'push', label: 'Push Broadcast', description: 'Send push notifications' },
  { id: 'fresher-resources', label: 'Fresher Resources', description: 'Manage fresher resources' },
  { id: 'faculty-directories', label: 'Faculty Directories', description: 'Manage faculty directories' },
+ { id: 'gorobo', label: 'GoRoBo', description: 'GoRoBo inventory, billing & wallet' },
  { id: 'users', label: 'User Management', description: 'Manage admin users' },
 ];
 
