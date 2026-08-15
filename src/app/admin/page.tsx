@@ -12,6 +12,8 @@ import StorageManager from "@/components/custom/admin/StorageManager";
 import AuditLogsManager from "@/components/custom/admin/AuditLogsManager";
 import SettingsTab from "@/components/custom/admin/SettingsTab";
 import AdminUsersTab from "@/components/custom/admin/AdminUsersTab";
+import GoRoboAdmin from "@/components/custom/admin/gorobo/GoRoboAdmin";
+import AmazeWallet from "@/components/custom/admin/gorobo/AmazeWallet";
 
 export default function AdminPage() {
  const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -72,6 +74,12 @@ export default function AdminPage() {
  )}
  {activeTab === 'users' && (
  <AdminUsersTab currentUserRole="superadmin" />
+ )}
+ {activeTab === 'gorobo' && (
+ <GoRoboAdmin />
+ )}
+ {activeTab === 'gorobo-wallet' && (
+ <AmazeWallet />
  )}
  {activeTab === 'settings' && (
  <SettingsTab />
