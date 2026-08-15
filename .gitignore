@@ -48,6 +48,7 @@ public/swe-worker*
 certificates
 .open-next
 .wrangler
-env.local
+.env.local
+.env
 scripts/ocr-worker/node_modules/
 config.bat
