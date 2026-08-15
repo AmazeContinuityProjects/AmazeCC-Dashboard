@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { 
   RefreshCcw, User, Users, LayoutGrid, MessageSquare, Bus, ShieldCheck, LogOut, 
   Menu, BarChart3, ChevronDown, FileText, Database, History, 
-  Image, Settings, GraduationCap, Building2, Cpu, Wallet
+  Image, Settings, GraduationCap, Building2, Cpu, Wallet, Boxes, Receipt
 } from 'lucide-react';
 import { 
   Sidebar as ReusableSidebar, 
@@ -33,7 +33,8 @@ const navGroups = [
   {
     label: 'GoRoBo',
     items: [
-      { id: 'gorobo', label: 'GoRoBo', icon: Cpu, requiredPermission: 'gorobo' },
+      { id: 'gorobo-inventory', label: 'Inventory', icon: Boxes, requiredPermission: 'gorobo' },
+      { id: 'gorobo-orders', label: 'Orders', icon: Receipt, requiredPermission: 'gorobo' },
       { id: 'gorobo-wallet', label: 'Amaze Wallet', icon: Wallet, requiredPermission: 'gorobo' },
     ]
   },
@@ -65,15 +66,17 @@ interface AdminLayoutProps {
 }
 
 const navItemClass = (isActive: boolean) =>
-  `relative flex items-center w-full gap-2.5 px-3 py-2 rounded-lg transition-all duration-150 group ${
+  `relative flex items-center w-full gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 cursor-pointer ${
     isActive
-      ? 'text-accent bg-accent/10 shadow-sm border border-accent/20'
-      : 'text-muted-foreground hover:text-foreground hover:bg-accent/5 border border-transparent'
+      ? 'text-primary bg-primary/10 font-semibold shadow-xs border border-primary/20 dark:bg-primary/15'
+      : 'text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent active:scale-[0.99]'
   }`;
 
 const subTabClass = (isActive: boolean) =>
-  `flex items-center gap-2 text-sm py-1.5 pl-4 w-full text-left transition-colors rounded-r-lg ${
-    isActive ? 'text-accent font-semibold bg-accent/5' : 'text-muted-foreground/70 hover:text-foreground hover:bg-muted/30'
+  `flex items-center gap-2.5 text-xs py-2 px-3 w-full text-left transition-all duration-150 rounded-lg cursor-pointer ${
+    isActive
+      ? 'text-primary font-semibold bg-primary/10'
+      : 'text-muted-foreground/80 hover:text-foreground hover:bg-muted/40'
   }`;
 
 export default function AdminLayout({ children, activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLogout, username = 'Admin', userRole = 'admin', stats, userPermissions = [] }: AdminLayoutProps) {
@@ -140,7 +143,7 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
               <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const isActive = activeTab === item.id;
+                const isActive = activeTab === item.id || (item.id === 'gorobo-inventory' && activeTab === 'gorobo');
                 return (
                   <div key={item.id} className="w-full">
                     <button
@@ -151,27 +154,29 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
                       className={navItemClass(isActive)}
                       title={isCollapsed ? item.label : ''}
                     >
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-accent' : 'text-muted-foreground/60'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground/70 group-hover:text-foreground'}`} />
                       {!isCollapsed && (
-                        <span className="text-sm font-medium flex-1 text-left truncate">
+                        <span className="text-sm flex-1 text-left truncate">
                           {item.label}
                         </span>
                       )}
                       {isActive && !isCollapsed && item.subTabs && (
-                        <ChevronDown className="w-3 h-3 opacity-50 shrink-0" />
+                        <ChevronDown className="w-3.5 h-3.5 opacity-60 shrink-0" />
                       )}
                     </button>
 
                     {isActive && item.subTabs && !isCollapsed && (
-                      <div className="ml-8 border-l border-border/50 space-y-0.5 mt-0.5">
+                      <div className="ml-8 border-l border-border/50 space-y-0.5 mt-0.5 pl-2">
                         {item.subTabs.map((sub) => (
                           <button
                             key={sub.id}
                             onClick={() => setActiveSubTab(sub.id)}
                             className={subTabClass(activeSubTab === sub.id)}
                           >
-                            {activeSubTab === sub.id && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+                            {activeSubTab === sub.id ? (
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                            ) : (
+                              <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
                             )}
                             <span className="truncate">{sub.label}</span>
                           </button>
@@ -217,14 +222,19 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
       </ReusableSidebar>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-4 left-4 right-4 z-50 h-14 bg-card/80 backdrop-blur-2xl border border-border/50 shadow-medium rounded-2xl flex items-center justify-around px-1">
+      <div className="md:hidden fixed bottom-4 left-4 right-4 z-50 h-14 bg-card/85 backdrop-blur-2xl border border-border/60 shadow-xl rounded-2xl flex items-center justify-around px-2">
         {mobileNavItems.map((item) => {
           const Icon = item.icon;
+          const isActive = activeTab === item.id || (item.id === 'gorobo-inventory' && activeTab === 'gorobo');
           return (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`p-2 rounded-xl transition-all ${activeTab === item.id ? 'bg-accent text-accent-foreground shadow-sm scale-110 -translate-y-1' : 'text-muted-foreground'}`}
+              className={`p-2 rounded-xl transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-primary text-primary-foreground shadow-sm scale-105'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
               <Icon className="w-5 h-5" />
             </button>
@@ -232,7 +242,7 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
         })}
         <button
           onClick={() => setIsMobileOpen(true)}
-          className="p-2 text-muted-foreground"
+          className="p-2 text-muted-foreground hover:text-foreground cursor-pointer rounded-xl"
         >
           <Menu className="w-5 h-5" />
         </button>
@@ -240,27 +250,28 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
 
       {/* Mobile Drawer */}
       {isMobileOpen && (
-        <div className="fixed inset-x-0 bottom-0 z-50 md:hidden bg-card rounded-t-2xl p-5 shadow-large border-t border-border/50 max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
-          <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-6" />
+        <div className="fixed inset-x-0 bottom-0 z-50 md:hidden bg-card rounded-t-3xl p-5 shadow-2xl border-t border-border max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
+          <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-6" />
           <div className="space-y-6">
             {filteredNavGroups.map((group, gIdx) => (
               <div key={gIdx} className="space-y-3">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{group.label}</p>
-                <div className="grid grid-cols-2 gap-3">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{group.label}</p>
+                <div className="grid grid-cols-2 gap-2.5">
                   {group.items.map((item) => {
                     const Icon = item.icon;
+                    const isActive = activeTab === item.id || (item.id === 'gorobo-inventory' && activeTab === 'gorobo');
                     return (
                       <button
                         key={item.id}
                         onClick={() => { setActiveTab(item.id); setIsMobileOpen(false); }}
-                        className={`flex flex-col items-center gap-2.5 p-3 rounded-xl border transition-all ${
-                          activeTab === item.id
-                            ? 'bg-accent/10 border-accent/30 text-accent'
-                            : 'bg-muted/50 border-border/50 text-muted-foreground'
+                        className={`flex flex-col items-center gap-2 p-3.5 rounded-xl border transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-primary/10 border-primary/30 text-primary font-bold shadow-xs'
+                            : 'bg-muted/40 border-border/50 text-muted-foreground hover:bg-muted/70 hover:text-foreground'
                         }`}
                       >
                         <Icon className="w-5 h-5" />
-                        <span className="text-xs font-bold">{item.label}</span>
+                        <span className="text-xs font-semibold text-center leading-tight">{item.label}</span>
                       </button>
                     );
                   })}
@@ -269,7 +280,7 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
             ))}
             <button
               onClick={onLogout}
-              className="w-full py-3 rounded-xl bg-danger/10 text-danger font-bold border border-danger/20"
+              className="w-full py-3.5 rounded-xl bg-destructive/10 text-destructive font-bold border border-destructive/20 hover:bg-destructive/20 transition-all cursor-pointer"
             >
               Sign Out
             </button>
@@ -290,7 +301,9 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
                       <button
                         key={sub.id}
                         onClick={() => setActiveSubTab(sub.id)}
-                        className={`px-3 py-1.5 text-sm font-semibold rounded-lg whitespace-nowrap transition-all flex-1 ${activeSubTab === sub.id ? 'bg-card shadow-sm text-accent' : 'text-muted-foreground hover:text-foreground'}`}
+                        className={`px-3 py-1.5 text-sm font-semibold rounded-lg whitespace-nowrap transition-all flex-1 cursor-pointer ${
+                          activeSubTab === sub.id ? 'bg-card shadow-xs text-primary' : 'text-muted-foreground hover:text-foreground'
+                        }`}
                       >
                         {sub.label}
                       </button>

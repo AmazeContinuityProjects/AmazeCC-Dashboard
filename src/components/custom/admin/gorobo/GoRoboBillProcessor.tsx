@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, X, Save, AlertCircle, CheckCircle, FileDown, Eye, Plus, Trash2,
-  CheckCheck, BadgeCheck, Truck
+  CheckCheck, BadgeCheck, Truck, MapPin
 } from 'lucide-react';
 import { Modal } from '@amazecontinuityprojects/amazeui';
 import {
@@ -228,7 +228,16 @@ export default function GoRoboBillProcessor() {
                     <td className="px-3 py-2.5 text-xs text-muted-foreground">
                       {new Date(order.createdAt).toLocaleString("en-IN", { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="px-3 py-2.5 font-semibold text-foreground">{order.userName}</td>
+                    <td className="px-3 py-2.5 font-semibold text-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <span>{order.userName}</span>
+                        {(order.deliveryMode === 'buzz' || order.deliveryMode === 'bolt') && (
+                          <span title="⚡ Buzz Delivery (Chennai Only)" className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                            ⚡ Buzz
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-3 py-2.5 font-mono text-xs">{order.phoneNumber}</td>
                     <td className="px-3 py-2.5 text-right">{order.items.length}</td>
                     <td className="px-3 py-2.5 text-right font-mono font-bold">{formatINR(order.total)}</td>
@@ -258,8 +267,28 @@ export default function GoRoboBillProcessor() {
           <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-3 text-sm">
               <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${statusColor[detail.status]}`}>{detail.status}</span>
+              {detail.deliveryMode === 'buzz' || detail.deliveryMode === 'bolt' ? (
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                  ⚡ Buzz Delivery (Chennai Only)
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                  Normal Delivery
+                </span>
+              )}
               <span className="text-muted-foreground">{detail.phoneNumber}</span>
               <span className="text-muted-foreground">Placed {new Date(detail.createdAt).toLocaleString("en-IN")}</span>
+              {detail.mapsUrl && (
+                <a
+                  href={detail.mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  Map Location
+                </a>
+              )}
               <span className="flex-1" />
               <GlassButton size="sm" variant="secondary" onClick={downloadPdf}>
                 <FileDown className="w-4 h-4 mr-1" />BOM PDF
