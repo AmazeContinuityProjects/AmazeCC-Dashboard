@@ -174,7 +174,7 @@ export default function SettingsTab() {
                 <p className="text-xs font-semibold text-gray-900 dark:text-white">Theme Switcher</p>
                 <p className="text-[10px] text-gray-500">Toggle between light and dark mode with accent colors</p>
               </div>
-              <ThemeSwitcher />
+               <ThemeSwitcher className="" />
             </div>
 
             <div className="pt-3 border-t border-gray-100 dark:border-slate-800/80 space-y-2.5 text-xs">

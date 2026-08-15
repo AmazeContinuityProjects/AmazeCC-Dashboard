@@ -5,13 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@amazecontinuityprojects/amazeui";
-import {
- Card,
- CardContent,
- CardDescription,
- CardHeader,
- CardTitle,
-} from "@amazecontinuityprojects/amazeui";
 
 const CHEPUS = [
  "/chepu/chepu_on_the_floor.png",
@@ -31,16 +24,16 @@ export default function NotFoundPage() {
  return (
  <main className="min-h-screen w-full bg-gray-100 px-4 text-foreground transition-colors duration-300 dark:bg-slate-900 ">
  <div className="mx-auto flex min-h-screen w-full max-w-3xl items-center justify-center py-10">
- <Card className="w-full border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-slate-800 ">
- <CardHeader>
+ <div className="w-full rounded-3xl border border-gray-300 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-slate-800">
+ <div className="mb-4">
  <p className="text-sm font-medium text-muted-foreground">AmazeCC Routing</p>
- <CardTitle className="text-2xl tracking-tight md:text-3xl">Page not found</CardTitle>
- <CardDescription className="text-sm md:text-base">
+ <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">Page not found</h1>
+ <p className="text-sm text-muted-foreground md:text-base">
  This route does not exist or may have been removed.
- </CardDescription>
- </CardHeader>
+ </p>
+ </div>
 
- <CardContent>
+ <div>
  {chepuImage && (
  <div className="flex justify-center mb-6">
  <Image
@@ -67,8 +60,8 @@ export default function NotFoundPage() {
  Go back
  </Button>
  </div>
- </CardContent>
- </Card>
+ </div>
+ </div>
  </div>
  </main>
  );

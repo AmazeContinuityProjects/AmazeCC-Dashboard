@@ -8,9 +8,10 @@ import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMe
 
 export function IconToggle() {
  const { setTheme } = useTheme()
+ const [open, setOpen] = React.useState(false)
 
  return (
- <DropdownMenu>
+ <DropdownMenu open={open} onOpenChange={setOpen}>
  <DropdownMenuTrigger asChild>
  <Button variant="outline" size="icon">
  <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
@@ -35,9 +36,10 @@ export function IconToggle() {
 
 export function DropdownToggle() {
  const { setTheme } = useTheme()
+ const [open, setOpen] = React.useState(false)
 
  return (
- <DropdownMenu>
+ <DropdownMenu open={open} onOpenChange={setOpen}>
  <DropdownMenuTrigger asChild className="w-full">
  <Button variant="outline" size="icon">
  Toggle theme

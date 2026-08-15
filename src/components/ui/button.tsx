@@ -1,6 +1,8 @@
 import { Button as AmazeUIButton, buttonVariants } from "@amazecontinuityprojects/amazeui";
-import type { ButtonProps as AmazeUIButtonProps } from "@amazecontinuityprojects/amazeui";
+import type { ComponentPropsWithoutRef } from "react";
 import * as React from "react";
+
+type AmazeUIButtonProps = ComponentPropsWithoutRef<typeof AmazeUIButton>;
 
 type ButtonProps = AmazeUIButtonProps & {
   [key: `on${string}`]: any;

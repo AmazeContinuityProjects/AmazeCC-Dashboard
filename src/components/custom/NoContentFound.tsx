@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { EmptyState } from "@amazecontinuityprojects/amazeui";
+import { EmptyState } from "@/components/custom/admin/AdminUI";
 
 export default function NoContentFound() {
  return (

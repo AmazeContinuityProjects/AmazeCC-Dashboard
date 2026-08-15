@@ -1,8 +1,7 @@
 'use client';
 import React from 'react';
 import { 
-  Card, 
-  Button, 
+  Button,
   Input, 
   Textarea, 
   Select, 
@@ -19,13 +18,11 @@ export const GlassCard = ({ children, className = '', hover = false, padding = '
  padding?: string;
  innerGlow?: boolean;
 }) => (
- <Card
-   className={`${padding} ${innerGlow ? 'relative before:absolute before:inset-0 before:rounded-[inherit] before:bg-gradient-to-br before:from-accent/5 before:to-transparent before:pointer-events-none' : ''} ${className}`}
-   hover={hover}
-   variant="glass"
+ <div
+   className={`relative rounded-3xl border border-border/50 bg-card/60 backdrop-blur-2xl shadow-sm ${padding} ${hover ? 'transition-colors hover:border-accent/40' : ''} ${innerGlow ? 'before:absolute before:inset-0 before:rounded-[inherit] before:bg-gradient-to-br before:from-accent/5 before:to-transparent before:pointer-events-none' : ''} ${className}`}
  >
  {children}
- </Card>
+ </div>
 );
 
 export const GlassButton = ({ children, className = '', variant = 'primary', size = 'md', disabled, ...props }: {
@@ -82,5 +79,24 @@ export const SectionHeader = ({ title, description, action, breadcrumbs, icon }:
 );
 
 export const StatusBadge = AmazeStatusBadge;
-export const EmptyState = AmazeEmptyState;
-export const LoadingSpinner = AmazeLoadingSpinner;
+
+// amazeui's EmptyState type requires action/className; make them optional.
+export const EmptyState = ({ icon, title, description, action, className }: {
+  icon?: React.ReactNode;
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+  className?: string;
+}) => (
+  <AmazeEmptyState icon={icon} title={title} description={description} action={action} className={className} />
+);
+
+// The amazeui LoadingSpinner types require className/label, but most call
+// sites use it bare. Wrap it so those props stay optional.
+export const LoadingSpinner = ({ size = 'md', className, label }: {
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+  label?: string;
+}) => (
+  <AmazeLoadingSpinner size={size} className={className as any} label={label} />
+);
