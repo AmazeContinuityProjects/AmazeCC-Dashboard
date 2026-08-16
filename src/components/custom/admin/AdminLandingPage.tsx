@@ -93,7 +93,7 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab }: Admi
   return (
   <div className="flex flex-col items-center justify-center py-20 min-h-[60vh] px-4">
   <GlassCard innerGlow className="max-w-md w-full border-destructive/20 p-6 text-center bg-destructive/5">
-  <div className="w-12 h-12 mx-auto mb-4 bg-destructive/10 rounded-sm flex items-center justify-center">
+  <div className="w-12 h-12 mx-auto mb-4 bg-destructive/10 rounded-xl flex items-center justify-center">
   <AlertTriangle className="w-6 h-6 text-destructive" />
   </div>
   <h3 className="text-lg font-black text-foreground tracking-tight">Failed to Load Dashboard Overview</h3>
@@ -155,7 +155,7 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab }: Admi
   <div onClick={() => setActiveTab('papers')} className="cursor-pointer">
   <GlassCard hover innerGlow className="h-full relative overflow-hidden group">
   <div className="flex justify-between items-start mb-3">
-  <div className="p-2.5 bg-accent/10 rounded-sm text-accent group-hover:scale-110 transition-transform duration-300">
+  <div className="p-2.5 bg-accent/10 rounded-xl text-accent group-hover:scale-110 transition-transform duration-300">
   <FileText className="w-5 h-5" />
   </div>
   <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -176,7 +176,7 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab }: Admi
   <div onClick={() => setActiveTab('questions')} className="cursor-pointer">
   <GlassCard hover innerGlow className="h-full relative overflow-hidden group">
   <div className="flex justify-between items-start mb-3">
-  <div className="p-2.5 bg-accent/10 rounded-sm text-accent group-hover:scale-110 transition-transform duration-300">
+  <div className="p-2.5 bg-accent/10 rounded-xl text-accent group-hover:scale-110 transition-transform duration-300">
   <LayoutGrid className="w-5 h-5" />
   </div>
   <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -197,7 +197,7 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab }: Admi
   <div onClick={() => { setActiveTab('qbank'); setActiveSubTab('queue'); }} className="cursor-pointer">
   <GlassCard hover innerGlow className="h-full relative overflow-hidden group">
   <div className="flex justify-between items-start mb-3">
-  <div className="p-2.5 bg-accent/10 rounded-sm text-accent group-hover:scale-110 transition-transform duration-300">
+  <div className="p-2.5 bg-accent/10 rounded-xl text-accent group-hover:scale-110 transition-transform duration-300">
   <Clock className="w-5 h-5" />
   </div>
   <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -218,7 +218,7 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab }: Admi
   <div onClick={() => setActiveTab('storage')} className="cursor-pointer">
   <GlassCard hover innerGlow className="h-full relative overflow-hidden group">
   <div className="flex justify-between items-start mb-3">
-  <div className="p-2.5 bg-accent/10 rounded-sm text-accent group-hover:scale-110 transition-transform duration-300">
+  <div className="p-2.5 bg-accent/10 rounded-xl text-accent group-hover:scale-110 transition-transform duration-300">
   <Database className="w-5 h-5" />
   </div>
   <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -242,9 +242,9 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab }: Admi
   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
   <button 
   onClick={() => setIsUploadModalOpen(true)}
-  className="flex flex-col items-center justify-center gap-2.5 p-4 rounded-sm bg-card/80 border border-border/50 hover:bg-accent hover:text-accent-foreground text-foreground transition-all duration-200 group shadow-small"
+  className="flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl bg-card/80 border border-border/50 hover:bg-accent hover:text-accent-foreground text-foreground transition-all duration-200 group shadow-small"
   >
-  <div className="p-2.5 bg-accent/10 rounded-sm group-hover:bg-white/20 transition-colors">
+  <div className="p-2.5 bg-accent/10 rounded-xl group-hover:bg-white/20 transition-colors">
   <Plus className="w-5 h-5 text-accent group-hover:text-accent-foreground" />
   </div>
   <span className="text-[10px] font-bold uppercase tracking-widest">Upload Paper</span>
@@ -252,9 +252,9 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab }: Admi
   
   <button 
   onClick={() => { setActiveTab('qbank'); setActiveSubTab('queue'); }}
-  className="flex flex-col items-center justify-center gap-2.5 p-4 rounded-sm bg-card/80 border border-border/50 hover:bg-accent hover:text-accent-foreground text-foreground transition-all duration-200 group shadow-small"
+  className="flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl bg-card/80 border border-border/50 hover:bg-accent hover:text-accent-foreground text-foreground transition-all duration-200 group shadow-small"
   >
-  <div className="p-2.5 bg-accent/10 rounded-sm group-hover:bg-white/20 transition-colors">
+  <div className="p-2.5 bg-accent/10 rounded-xl group-hover:bg-white/20 transition-colors">
   <Cpu className="w-5 h-5 text-accent group-hover:text-accent-foreground" />
   </div>
   <span className="text-[10px] font-bold uppercase tracking-widest">OCR Queue</span>
@@ -262,9 +262,9 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab }: Admi
 
   <button 
   onClick={() => setActiveTab('questions')}
-  className="flex flex-col items-center justify-center gap-2.5 p-4 rounded-sm bg-card/80 border border-border/50 hover:bg-accent hover:text-accent-foreground text-foreground transition-all duration-200 group shadow-small"
+  className="flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl bg-card/80 border border-border/50 hover:bg-accent hover:text-accent-foreground text-foreground transition-all duration-200 group shadow-small"
   >
-  <div className="p-2.5 bg-accent/10 rounded-sm group-hover:bg-white/20 transition-colors">
+  <div className="p-2.5 bg-accent/10 rounded-xl group-hover:bg-white/20 transition-colors">
   <ListFilter className="w-5 h-5 text-accent group-hover:text-accent-foreground" />
   </div>
   <span className="text-[10px] font-bold uppercase tracking-widest">Questions</span>
@@ -272,9 +272,9 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab }: Admi
 
   <button 
   onClick={() => setActiveTab('storage')}
-  className="flex flex-col items-center justify-center gap-2.5 p-4 rounded-sm bg-card/80 border border-border/50 hover:bg-accent hover:text-accent-foreground text-foreground transition-all duration-200 group shadow-small"
+  className="flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl bg-card/80 border border-border/50 hover:bg-accent hover:text-accent-foreground text-foreground transition-all duration-200 group shadow-small"
   >
-  <div className="p-2.5 bg-accent/10 rounded-sm group-hover:bg-white/20 transition-colors">
+  <div className="p-2.5 bg-accent/10 rounded-xl group-hover:bg-white/20 transition-colors">
   <Database className="w-5 h-5 text-accent group-hover:text-accent-foreground" />
   </div>
   <span className="text-[10px] font-bold uppercase tracking-widest">Storage</span>
@@ -294,7 +294,7 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab }: Admi
   
   {weeklyQuestions.length > 0 ? (
   <div className="w-full flex-1 flex flex-col justify-end">
-  <div className="relative h-52 w-full bg-muted/50 rounded-sm p-4 flex items-end overflow-hidden border border-border/50">
+  <div className="relative h-52 w-full bg-muted/50 rounded-xl p-4 flex items-end overflow-hidden border border-border/50">
   <svg className="w-full h-full" viewBox="0 0 400 150" preserveAspectRatio="none">
   <line x1="0" y1="25" x2="400" y2="25" stroke="currentColor" className="text-border" strokeWidth="1" strokeDasharray="4" />
   <line x1="0" y1="75" x2="400" y2="75" stroke="currentColor" className="text-border" strokeWidth="1" strokeDasharray="4" />
@@ -493,7 +493,7 @@ function DatabaseSection() {
  <GlassCard>
  <div className="flex items-center justify-between mb-3">
  <div className="flex items-center gap-2.5">
- <div className="p-1.5 bg-accent/10 rounded-sm text-accent">
+ <div className="p-1.5 bg-accent/10 rounded-xl text-accent">
  <Database className="w-4 h-4" />
  </div>
  <h3 className="text-sm font-semibold text-foreground">Database</h3>
@@ -526,7 +526,7 @@ function DatabaseSection() {
  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Tables ({dbStatus.tables.length})</p>
  <div className="flex flex-wrap gap-1.5">
  {dbStatus.tables.map((t: string) => (
- <span key={t} className="px-2 py-0.5 text-[10px] font-medium rounded-sm bg-muted text-muted-foreground">{t}</span>
+ <span key={t} className="px-2 py-0.5 text-[10px] font-medium rounded-xl bg-muted text-muted-foreground">{t}</span>
  ))}
  </div>
  </div>
