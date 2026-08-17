@@ -6,9 +6,23 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import {
-  GlassCard, GlassButton, GlassInput, GlassTextarea, GlassSelect,
-  SectionHeader, LoadingSpinner, EmptyState
-} from './AdminUI';
+  Card,
+  Button,
+  Input,
+  Textarea,
+  Select,
+  SectionHeader,
+  LoadingSpinner,
+  EmptyState,
+  Badge,
+  Alert,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell
+} from '@/components/custom/admin/AdminUI';
 
 type BusRoute = {
   id: number; route_number: string; route_name: string;
@@ -79,50 +93,50 @@ export default function TransportManager() {
   };
 
   return (
-    <div>
+    <div className="space-y-6 animate-fadeIn">
       <SectionHeader
         title="Transport Manager"
-        description="Manage bus routes, stops, placements, contacts, and rules."
+        description="Manage bus routes, stops, pickup timings, dispersal placements, contact directories, and guidelines."
         action={
           <div className="flex items-center gap-3">
             {seedMsg && (
-              <span className={`text-xs font-medium ${seedMsg.startsWith('Error') ? 'text-red-500' : 'text-green-500'}`}>
+              <span className={`text-xs font-semibold ${seedMsg.startsWith('Error') ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 {seedMsg}
               </span>
             )}
-            <button
+            <Button
               onClick={runSeed}
               disabled={seeding}
-              className="relative flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-accent-foreground text-sm font-semibold disabled:opacity-50 transition-all hover:brightness-110 overflow-hidden"
+              variant="primary"
+              className="flex items-center gap-2"
             >
-              {seeding && (
-                <div className="absolute inset-0 bg-accent-foreground/10 transition-all" style={{ width: `${seedProgress}%` }} />
-              )}
-              <Database className="w-4 h-4 relative z-10" />
-              <span className="relative z-10">{seeding ? `Seeding ${seedProgress}%` : 'Load Seed Data'}</span>
-            </button>
+              <Database className="w-4 h-4" />
+              <span>{seeding ? `Seeding ${seedProgress}%` : 'Load Seed Data'}</span>
+            </Button>
           </div>
         }
       />
-      <div className="flex gap-1.5 p-1 bg-muted/50 rounded-xl border border-border/50 mb-6 overflow-x-auto">
-        {TABS.map(tab => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveSection(tab.id)}
-              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-lg whitespace-nowrap transition-all flex-1 ${
-                activeSection === tab.id
-                  ? 'bg-card shadow-sm text-accent'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+
+      <Card className="p-1.5">
+        <div className="flex gap-1.5 overflow-x-auto">
+          {TABS.map(tab => {
+            const Icon = tab.icon;
+            return (
+              <Button
+                key={tab.id}
+                variant={activeSection === tab.id ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveSection(tab.id)}
+                className="flex items-center gap-2 text-xs font-semibold"
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </Button>
+            );
+          })}
+        </div>
+      </Card>
+
       {activeSection === 'routes' && <RoutesSection />}
       {activeSection === 'stops' && <StopsSection />}
       {activeSection === 'placements' && <PlacementsSection />}
@@ -201,78 +215,87 @@ function RoutesSection() {
     } finally { setSaving(false); }
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <div className="py-20 flex justify-center"><LoadingSpinner size="lg" /></div>;
 
   return (
-    <div>
+    <div className="space-y-4">
       {msg && (
-        <div className={`mb-4 p-3 rounded-xl text-sm backdrop-blur-xl flex items-center gap-2 ${
-          msg.startsWith('Error')
-            ? 'bg-red-50 dark:bg-red-900/20 border border-red-200/50 text-red-700 dark:text-red-400'
-            : 'bg-green-50 dark:bg-green-900/20 border border-green-200/50 text-green-700 dark:text-green-400'
-        }`}>
-          {msg.startsWith('Error') ? <AlertCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-          {msg}
-        </div>
+        <Alert variant={msg.startsWith('Error') ? 'error' : 'success'}>
+          <span>{msg}</span>
+        </Alert>
       )}
-      <div className="relative mb-4">
+
+      <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-background text-foreground placeholder-muted-foreground border-border/50 focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none text-sm"
-          placeholder="Search routes by name or number..."
+        <Input
+          className="pl-9 w-full"
+          placeholder="Search routes by name or route number..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e: any) => setSearch(e.target.value)}
         />
       </div>
-      <div className="space-y-2">
+
+      <div className="space-y-3">
         {filtered.map(route => (
-          <GlassCard key={route.id} padding="p-0">
-            <button
+          <Card key={route.id} className="p-0 overflow-hidden">
+            <div
               onClick={() => editId === route.id ? cancelEdit() : startEdit(route)}
-              className="w-full flex items-center justify-between p-4 text-left hover:bg-accent/5 transition-colors"
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <span className="text-lg font-bold text-accent min-w-[3ch]">#{route.route_number}</span>
+                <Badge variant="default" size="md" className="font-bold">
+                  #{route.route_number}
+                </Badge>
                 <div>
-                  <p className="font-semibold text-foreground">{route.route_name}</p>
+                  <p className="font-bold text-foreground text-sm">{route.route_name}</p>
                   <p className="text-xs text-muted-foreground">
                     {route.type} &middot; {route.stop_count || 0} stops
                   </p>
                 </div>
               </div>
               {editId === route.id ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-            </button>
+            </div>
+
             {editId === route.id && (
-              <div className="border-t border-border/50 p-4 space-y-3">
+              <div className="border-t border-border/50 p-5 space-y-4 bg-muted/10">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <GlassInput label="Route Name" value={editData.route_name || ''} onChange={e => setEditData(p => ({ ...p, route_name: e.target.value }))} />
-                  <GlassSelect
+                  <Input label="Route Name" value={editData.route_name || ''} onChange={(e: any) => setEditData(p => ({ ...p, route_name: e.target.value }))} />
+                  <Select
                     label="Type"
                     options={[{ value: 'AC', label: 'AC' }, { value: 'Non-AC', label: 'Non-AC' }]}
                     value={editData.type || 'AC'}
-                    onChange={e => setEditData(p => ({ ...p, type: e.target.value }))}
+                    onChange={(e: any) => setEditData(p => ({ ...p, type: e.target.value }))}
                   />
-                  <GlassInput label="Driver Name" value={editData.driver_name || ''} onChange={e => setEditData(p => ({ ...p, driver_name: e.target.value }))} />
-                  <GlassInput label="Driver Phone" value={editData.driver_phone || ''} onChange={e => setEditData(p => ({ ...p, driver_phone: e.target.value }))} />
-                  <GlassInput label="WhatsApp Group" value={editData.whatsapp_group || ''} onChange={e => setEditData(p => ({ ...p, whatsapp_group: e.target.value }))} />
-                  <GlassInput label="Bus Location" value={editData.bus_location || ''} onChange={e => setEditData(p => ({ ...p, bus_location: e.target.value }))} />
-                  <GlassInput label="Supervisor Name" value={editData.supervisor_name || ''} onChange={e => setEditData(p => ({ ...p, supervisor_name: e.target.value }))} />
-                  <GlassInput label="Supervisor Phone" value={editData.supervisor_phone || ''} onChange={e => setEditData(p => ({ ...p, supervisor_phone: e.target.value }))} />
-                  <GlassInput label="Driver Incharge Name" value={editData.driver_incharge_name || ''} onChange={e => setEditData(p => ({ ...p, driver_incharge_name: e.target.value }))} />
-                  <GlassInput label="Driver Incharge Phone" value={editData.driver_incharge_phone || ''} onChange={e => setEditData(p => ({ ...p, driver_incharge_phone: e.target.value }))} />
+                  <Input label="Driver Name" value={editData.driver_name || ''} onChange={(e: any) => setEditData(p => ({ ...p, driver_name: e.target.value }))} />
+                  <Input label="Driver Phone" value={editData.driver_phone || ''} onChange={(e: any) => setEditData(p => ({ ...p, driver_phone: e.target.value }))} />
+                  <Input label="WhatsApp Group" value={editData.whatsapp_group || ''} onChange={(e: any) => setEditData(p => ({ ...p, whatsapp_group: e.target.value }))} />
+                  <Input label="Bus Location" value={editData.bus_location || ''} onChange={(e: any) => setEditData(p => ({ ...p, bus_location: e.target.value }))} />
+                  <Input label="Supervisor Name" value={editData.supervisor_name || ''} onChange={(e: any) => setEditData(p => ({ ...p, supervisor_name: e.target.value }))} />
+                  <Input label="Supervisor Phone" value={editData.supervisor_phone || ''} onChange={(e: any) => setEditData(p => ({ ...p, supervisor_phone: e.target.value }))} />
+                  <Input label="Driver Incharge Name" value={editData.driver_incharge_name || ''} onChange={(e: any) => setEditData(p => ({ ...p, driver_incharge_name: e.target.value }))} />
+                  <Input label="Driver Incharge Phone" value={editData.driver_incharge_phone || ''} onChange={(e: any) => setEditData(p => ({ ...p, driver_incharge_phone: e.target.value }))} />
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <GlassButton variant="ghost" onClick={cancelEdit}><X className="w-4 h-4 mr-1" />Cancel</GlassButton>
-                  <GlassButton onClick={saveRoute} disabled={saving}>
-                    <Save className="w-4 h-4 mr-1" />{saving ? 'Saving...' : 'Save'}
-                  </GlassButton>
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button variant="ghost" size="sm" onClick={cancelEdit}>
+                    <X className="w-4 h-4 mr-1" /> Cancel
+                  </Button>
+                  <Button variant="primary" size="sm" onClick={saveRoute} disabled={saving} className="flex items-center gap-1.5">
+                    <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Route'}
+                  </Button>
                 </div>
               </div>
             )}
-          </GlassCard>
+          </Card>
         ))}
+
         {filtered.length === 0 && (
-          <EmptyState icon={<Search className="w-10 h-10 text-muted-foreground/50 mb-2" />} title="No routes found" description={search ? 'Try a different search term.' : 'No routes loaded. Run seed first.'} />
+          <Card className="p-12 text-center">
+            <EmptyState 
+              icon={<Search className="w-10 h-10 text-muted-foreground/50 mb-2" />} 
+              title="No routes found" 
+              description={search ? 'Try a different search query.' : 'No routes found. Click "Load Seed Data" to populate routes.'} 
+            />
+          </Card>
         )}
       </div>
     </div>
@@ -350,73 +373,75 @@ function StopsSection() {
     } finally { setSaving(null); }
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <div className="py-20 flex justify-center"><LoadingSpinner size="lg" /></div>;
 
   return (
-    <div>
+    <div className="space-y-4">
       {msg && (
-        <div className={`mb-4 p-3 rounded-xl text-sm backdrop-blur-xl flex items-center gap-2 ${
-          msg.startsWith('Error')
-            ? 'bg-red-50 dark:bg-red-900/20 border border-red-200/50 text-red-700 dark:text-red-400'
-            : 'bg-green-50 dark:bg-green-900/20 border border-green-200/50 text-green-700 dark:text-green-400'
-        }`}>
-          {msg.startsWith('Error') ? <AlertCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-          {msg}
-        </div>
+        <Alert variant={msg.startsWith('Error') ? 'error' : 'success'}>
+          <span>{msg}</span>
+        </Alert>
       )}
-      <p className="text-sm text-muted-foreground mb-4">Click a route to edit its boarding points and pickup times.</p>
-      <div className="space-y-2">
+
+      <p className="text-sm text-muted-foreground">Click a route to view and modify its boarding points and pickup timings.</p>
+
+      <div className="space-y-3">
         {routes.map(route => (
-          <GlassCard key={route.id} padding="p-0">
-            <button
+          <Card key={route.id} className="p-0 overflow-hidden">
+            <div
               onClick={() => expandRoute(route.id)}
-              className="w-full flex items-center justify-between p-4 text-left hover:bg-accent/5 transition-colors"
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <span className="text-lg font-bold text-accent min-w-[3ch]">#{route.route_number}</span>
+                <Badge variant="default" size="md" className="font-bold">
+                  #{route.route_number}
+                </Badge>
                 <div>
-                  <p className="font-semibold text-foreground">{route.route_name}</p>
-                  <p className="text-xs text-muted-foreground">{route.stop_count || 0} stops</p>
+                  <p className="font-bold text-foreground text-sm">{route.route_name}</p>
+                  <p className="text-xs text-muted-foreground">{route.stop_count || 0} stops recorded</p>
                 </div>
               </div>
-              {expandedRoute === route.id ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            </button>
+              {expandedRoute === route.id ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+            </div>
+
             {expandedRoute === route.id && (
-              <div className="border-t border-border/50 p-4 space-y-3">
+              <div className="border-t border-border/50 p-5 space-y-4 bg-muted/10">
                 {stops.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">No stops defined. Click "Add Stop" to begin.</p>
                 )}
-                {stops.map((stop, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-muted-foreground min-w-[2ch]">#{stop.stop_order}</span>
-                    <input
-                      className="flex-1 px-3 py-2 rounded-lg border bg-background text-foreground text-sm border-border/50 outline-none focus:ring-2 focus:ring-accent/20"
-                      placeholder="Stop name"
-                      value={stop.stop_name}
-                      onChange={e => updateStop(idx, 'stop_name', e.target.value)}
-                    />
-                    <input
-                      className="w-28 px-3 py-2 rounded-lg border bg-background text-foreground text-sm border-border/50 outline-none focus:ring-2 focus:ring-accent/20"
-                      placeholder="6.30 AM"
-                      value={stop.pickup_time}
-                      onChange={e => updateStop(idx, 'pickup_time', e.target.value)}
-                    />
-                    <button onClick={() => removeStop(idx)} className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                <div className="space-y-2">
+                  {stops.map((stop, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-muted-foreground min-w-[2.5ch]">#{stop.stop_order}</span>
+                      <Input
+                        className="flex-1"
+                        placeholder="Stop name"
+                        value={stop.stop_name}
+                        onChange={(e: any) => updateStop(idx, 'stop_name', e.target.value)}
+                      />
+                      <Input
+                        className="w-32"
+                        placeholder="e.g. 6:30 AM"
+                        value={stop.pickup_time}
+                        onChange={(e: any) => updateStop(idx, 'pickup_time', e.target.value)}
+                      />
+                      <Button size="icon-sm" variant="ghost" onClick={() => removeStop(idx)} className="text-destructive hover:bg-destructive/10">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
                 <div className="flex gap-2 pt-2">
-                  <GlassButton variant="secondary" size="sm" onClick={addStop}>
-                    <Plus className="w-4 h-4 mr-1" />Add Stop
-                  </GlassButton>
-                  <GlassButton size="sm" onClick={() => saveStops(route.id)} disabled={saving === route.id}>
-                    <Save className="w-4 h-4 mr-1" />{saving === route.id ? 'Saving...' : 'Save Stops'}
-                  </GlassButton>
+                  <Button variant="secondary" size="sm" onClick={addStop} className="flex items-center gap-1.5">
+                    <Plus className="w-4 h-4" /> Add Stop
+                  </Button>
+                  <Button size="sm" variant="primary" onClick={() => saveStops(route.id)} disabled={saving === route.id} className="flex items-center gap-1.5">
+                    <Save className="w-4 h-4" /> {saving === route.id ? 'Saving...' : 'Save Stops'}
+                  </Button>
                 </div>
               </div>
             )}
-          </GlassCard>
+          </Card>
         ))}
       </div>
     </div>
@@ -487,7 +512,7 @@ function PlacementsSection() {
     } finally { setSaving(false); }
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <div className="py-20 flex justify-center"><LoadingSpinner size="lg" /></div>;
 
   const grouped: Record<string, Record<string, Placement[]>> = {};
   const current = editing ? editData : placements;
@@ -498,59 +523,60 @@ function PlacementsSection() {
   });
 
   return (
-    <div>
+    <div className="space-y-4">
       {msg && (
-        <div className={`mb-4 p-3 rounded-xl text-sm backdrop-blur-xl flex items-center gap-2 ${
-          msg.startsWith('Error')
-            ? 'bg-red-50 dark:bg-red-900/20 border border-red-200/50 text-red-700 dark:text-red-400'
-            : 'bg-green-50 dark:bg-green-900/20 border border-green-200/50 text-green-700 dark:text-green-400'
-        }`}>
-          {msg.startsWith('Error') ? <AlertCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-          {msg}
-        </div>
+        <Alert variant={msg.startsWith('Error') ? 'error' : 'success'}>
+          <span>{msg}</span>
+        </Alert>
       )}
-      <div className="flex gap-2 mb-4">
+
+      <div className="flex gap-2">
         {editing ? (
           <>
-            <GlassButton onClick={savePlacements} disabled={saving}>
-              <Save className="w-4 h-4 mr-1" />{saving ? 'Saving...' : 'Save All'}
-            </GlassButton>
-            <GlassButton variant="ghost" onClick={() => setEditing(false)}>Cancel</GlassButton>
-            <GlassButton variant="secondary" size="sm" onClick={addPlacement}>
-              <Plus className="w-4 h-4 mr-1" />Add Entry
-            </GlassButton>
+            <Button variant="primary" onClick={savePlacements} disabled={saving} className="flex items-center gap-1.5">
+              <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save All'}
+            </Button>
+            <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+            <Button variant="secondary" size="sm" onClick={addPlacement} className="flex items-center gap-1.5">
+              <Plus className="w-4 h-4" /> Add Entry
+            </Button>
           </>
         ) : (
-          <GlassButton onClick={startEdit}><Upload className="w-4 h-4 mr-1" />Edit</GlassButton>
+          <Button variant="outline" onClick={startEdit} className="flex items-center gap-1.5">
+            <Upload className="w-4 h-4" /> Edit Placements
+          </Button>
         )}
       </div>
+
       {Object.entries(grouped).map(([time, zones]) => (
-        <div key={time} className="mb-6">
-          <h3 className="text-sm font-bold text-foreground mb-3">{time} Dispersal</h3>
-          <div className="space-y-3">
+        <div key={time} className="space-y-3 pt-2">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">{time} Dispersal</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {Object.entries(zones).map(([zone, items]) => (
-              <GlassCard key={zone}>
-                <p className="text-sm font-semibold text-accent mb-2">{zone}</p>
-                <p className="text-xs text-muted-foreground">
-                  Routes: {items.map((p, pIdx) => editing ? (
-                    <span key={`${p.route_number}-${pIdx}`} className="inline-flex items-center gap-1 mr-2">
-                      <input
-                        className="w-16 px-2 py-1 rounded border bg-background text-xs border-border/50"
-                        value={p.route_number}
-                        onChange={e => updatePlacement(current.indexOf(p), 'route_number', e.target.value)}
-                      />
-                      {p.route_name && <span className="text-muted-foreground">({p.route_name})</span>}
-                      <button onClick={() => removePlacement(current.indexOf(p))} className="text-destructive hover:bg-destructive/10 rounded p-0.5">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ) : (
-                    <span key={`r${p.route_number}-${pIdx}`} className="inline-block bg-accent/10 text-accent px-2 py-0.5 rounded text-xs mr-1 mb-1">
-                      #{p.route_number} {p.route_name ? `- ${p.route_name}` : ''}
-                    </span>
-                  ))}
-                </p>
-              </GlassCard>
+              <Card key={zone} className="p-4">
+                <p className="text-sm font-bold text-primary mb-2">{zone}</p>
+                <div className="text-xs text-muted-foreground">
+                  <div className="flex flex-wrap gap-1.5">
+                    {items.map((p, pIdx) => editing ? (
+                      <span key={`${p.route_number}-${pIdx}`} className="inline-flex items-center gap-1 bg-muted/60 px-2 py-1 rounded-lg border border-border/50">
+                        <input
+                          className="w-16 px-1.5 py-0.5 rounded border bg-background text-xs border-border/50 outline-none"
+                          value={p.route_number}
+                          onChange={e => updatePlacement(current.indexOf(p), 'route_number', e.target.value)}
+                        />
+                        {p.route_name && <span className="text-muted-foreground">({p.route_name})</span>}
+                        <Button size="icon-sm" variant="ghost" onClick={() => removePlacement(current.indexOf(p))} className="text-destructive hover:bg-destructive/10 h-5 w-5 p-0">
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </span>
+                    ) : (
+                      <Badge key={`r${p.route_number}-${pIdx}`} variant="default" size="sm" className="font-semibold">
+                        #{p.route_number} {p.route_name ? `- ${p.route_name}` : ''}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </Card>
             ))}
           </div>
         </div>
@@ -619,106 +645,119 @@ function ContactsSection() {
       (r.driver_incharge_name || '').toLowerCase().includes(q);
   });
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <div className="py-20 flex justify-center"><LoadingSpinner size="lg" /></div>;
 
   return (
-    <div>
+    <div className="space-y-4">
       {msg && (
-        <div className={`mb-4 p-3 rounded-xl text-sm backdrop-blur-xl flex items-center gap-2 ${
-          msg.startsWith('Error')
-            ? 'bg-red-50 dark:bg-red-900/20 border border-red-200/50 text-red-700 dark:text-red-400'
-            : 'bg-green-50 dark:bg-green-900/20 border border-green-200/50 text-green-700 dark:text-green-400'
-        }`}>
-          {msg.startsWith('Error') ? <AlertCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-          {msg}
-        </div>
+        <Alert variant={msg.startsWith('Error') ? 'error' : 'success'}>
+          <span>{msg}</span>
+        </Alert>
       )}
-      <div className="relative mb-4">
+
+      <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-background text-foreground placeholder-muted-foreground border-border/50 focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none text-sm"
-          placeholder="Search by route, name, or phone..."
+        <Input
+          className="pl-9 w-full"
+          placeholder="Search by route, driver name, or phone..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e: any) => setSearch(e.target.value)}
         />
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border/50 text-left text-muted-foreground text-xs uppercase tracking-wider">
-              <th className="px-3 py-2 font-semibold">Route</th>
-              <th className="px-3 py-2 font-semibold">Name</th>
-              <th className="px-3 py-2 font-semibold">Driver Name</th>
-              <th className="px-3 py-2 font-semibold">Phone</th>
-              <th className="px-3 py-2 font-semibold">Driver Incharge</th>
-              <th className="px-3 py-2 font-semibold">Supervisor</th>
-              <th className="px-3 py-2 font-semibold">WhatsApp Group</th>
-              <th className="px-3 py-2 font-semibold"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(route => {
-              const editing = editData[route.id];
-              return (
-                <tr key={route.id} className="border-b border-border/30 hover:bg-accent/5 transition-colors">
-                  <td className="px-3 py-2.5">
-                    <span className="font-bold text-accent">#{route.route_number}</span>
-                    <span className="text-muted-foreground ml-2">{route.route_name}</span>
-                  </td>
-                  <td className="px-3 py-2.5 text-xs"><span className={`px-2 py-0.5 rounded-full font-semibold ${route.type === 'AC' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'}`}>{route.type}</span></td>
-                  <td className="px-3 py-2.5">
-                    {editing ? (
-                      <input className="w-full px-2 py-1 rounded border bg-background text-sm border-border/50" value={editing.driver_name} onChange={e => setEditData(prev => ({ ...prev, [route.id]: { ...prev[route.id], driver_name: e.target.value } }))} />
-                    ) : (
-                      <span className={route.driver_name ? '' : 'text-muted-foreground/50 italic'}>{route.driver_name || '—'}</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {editing ? (
-                      <input className="w-full px-2 py-1 rounded border bg-background text-sm border-border/50" value={editing.driver_phone} onChange={e => setEditData(prev => ({ ...prev, [route.id]: { ...prev[route.id], driver_phone: e.target.value } }))} />
-                    ) : (
-                      <span className={route.driver_phone ? '' : 'text-muted-foreground/50 italic'}>{route.driver_phone || '—'}</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <span className={route.driver_incharge_name || route.driver_incharge_phone ? '' : 'text-muted-foreground/50 italic'}>
-                      {route.driver_incharge_name ? <>{route.driver_incharge_name}<br /><span className="text-xs text-muted-foreground">{route.driver_incharge_phone}</span></> : '—'}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <span className={route.supervisor_name || route.supervisor_phone ? '' : 'text-muted-foreground/50 italic'}>
-                      {route.supervisor_name ? <>{route.supervisor_name}<br /><span className="text-xs text-muted-foreground">{route.supervisor_phone}</span></> : '—'}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {editing ? (
-                      <input className="w-full px-2 py-1 rounded border bg-background text-sm border-border/50" value={editing.whatsapp_group} onChange={e => setEditData(prev => ({ ...prev, [route.id]: { ...prev[route.id], whatsapp_group: e.target.value } }))} />
-                    ) : (
-                      <span className={route.whatsapp_group ? 'text-xs truncate max-w-[150px] inline-block' : 'text-muted-foreground/50 italic'}>{route.whatsapp_group || '—'}</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {editing ? (
-                      <div className="flex gap-1">
-                        <GlassButton size="sm" onClick={() => saveContact(route.id)} disabled={saving === route.id}>
-                          {saving === route.id ? '...' : <Save className="w-3 h-3" />}
-                        </GlassButton>
-                        <GlassButton size="sm" variant="ghost" onClick={() => setEditData(prev => { const n = { ...prev }; delete n[route.id]; return n; })}>
-                          <X className="w-3 h-3" />
-                        </GlassButton>
-                      </div>
-                    ) : (
-                      <GlassButton size="sm" variant="ghost" onClick={() => startEdit(route)}>
-                        <Upload className="w-3 h-3" />
-                      </GlassButton>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+
+      <Card className="overflow-hidden p-0">
+        <div className="overflow-x-auto">
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow className="border-b border-border/50 bg-muted/40">
+                <TableHead className="py-3 px-4 text-left font-semibold text-xs uppercase tracking-wider text-muted-foreground">Route</TableHead>
+                <TableHead className="py-3 px-4 text-left font-semibold text-xs uppercase tracking-wider text-muted-foreground">Type</TableHead>
+                <TableHead className="py-3 px-4 text-left font-semibold text-xs uppercase tracking-wider text-muted-foreground">Driver Name</TableHead>
+                <TableHead className="py-3 px-4 text-left font-semibold text-xs uppercase tracking-wider text-muted-foreground">Phone</TableHead>
+                <TableHead className="py-3 px-4 text-left font-semibold text-xs uppercase tracking-wider text-muted-foreground">Driver Incharge</TableHead>
+                <TableHead className="py-3 px-4 text-left font-semibold text-xs uppercase tracking-wider text-muted-foreground">Supervisor</TableHead>
+                <TableHead className="py-3 px-4 text-left font-semibold text-xs uppercase tracking-wider text-muted-foreground">WhatsApp Group</TableHead>
+                <TableHead className="py-3 px-4 text-right font-semibold text-xs uppercase tracking-wider text-muted-foreground">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(route => {
+                const editing = editData[route.id];
+                return (
+                  <TableRow key={route.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
+                    <TableCell className="py-3 px-4">
+                      <span className="font-bold text-primary">#{route.route_number}</span>
+                      <span className="text-muted-foreground ml-2 text-xs">{route.route_name}</span>
+                    </TableCell>
+                    <TableCell className="py-3 px-4">
+                      <Badge variant={route.type === 'AC' ? 'info' : 'default'} size="sm">
+                        {route.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-3 px-4">
+                      {editing ? (
+                        <Input className="h-8 text-xs" value={editing.driver_name} onChange={(e: any) => setEditData(prev => ({ ...prev, [route.id]: { ...prev[route.id], driver_name: e.target.value } }))} />
+                      ) : (
+                        <span className={route.driver_name ? 'text-sm' : 'text-muted-foreground/50 italic text-xs'}>{route.driver_name || '—'}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 font-mono text-xs">
+                      {editing ? (
+                        <Input className="h-8 text-xs" value={editing.driver_phone} onChange={(e: any) => setEditData(prev => ({ ...prev, [route.id]: { ...prev[route.id], driver_phone: e.target.value } }))} />
+                      ) : (
+                        <span className={route.driver_phone ? '' : 'text-muted-foreground/50 italic'}>{route.driver_phone || '—'}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-xs">
+                      {route.driver_incharge_name ? (
+                        <div>
+                          <p className="font-medium text-foreground">{route.driver_incharge_name}</p>
+                          <p className="text-muted-foreground font-mono">{route.driver_incharge_phone}</p>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground/50 italic">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-xs">
+                      {route.supervisor_name ? (
+                        <div>
+                          <p className="font-medium text-foreground">{route.supervisor_name}</p>
+                          <p className="text-muted-foreground font-mono">{route.supervisor_phone}</p>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground/50 italic">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-xs">
+                      {editing ? (
+                        <Input className="h-8 text-xs" value={editing.whatsapp_group} onChange={(e: any) => setEditData(prev => ({ ...prev, [route.id]: { ...prev[route.id], whatsapp_group: e.target.value } }))} />
+                      ) : (
+                        <span className={route.whatsapp_group ? 'truncate max-w-[140px] inline-block font-mono' : 'text-muted-foreground/50 italic'}>{route.whatsapp_group || '—'}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-right">
+                      {editing ? (
+                        <div className="flex gap-1 justify-end">
+                          <Button size="icon-sm" variant="primary" onClick={() => saveContact(route.id)} disabled={saving === route.id} className="h-7 w-7">
+                            <Save className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button size="icon-sm" variant="ghost" onClick={() => setEditData(prev => { const n = { ...prev }; delete n[route.id]; return n; })} className="h-7 w-7">
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button size="icon-sm" variant="ghost" onClick={() => startEdit(route)} className="h-7 w-7">
+                          <Upload className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
     </div>
   );
 }
@@ -782,58 +821,57 @@ function RulesSection() {
     } finally { setSaving(false); }
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <div className="py-20 flex justify-center"><LoadingSpinner size="lg" /></div>;
 
   const current = editing ? editData : rules;
 
   return (
-    <div>
+    <div className="space-y-4">
       {msg && (
-        <div className={`mb-4 p-3 rounded-xl text-sm backdrop-blur-xl flex items-center gap-2 ${
-          msg.startsWith('Error')
-            ? 'bg-red-50 dark:bg-red-900/20 border border-red-200/50 text-red-700 dark:text-red-400'
-            : 'bg-green-50 dark:bg-green-900/20 border border-green-200/50 text-green-700 dark:text-green-400'
-        }`}>
-          {msg.startsWith('Error') ? <AlertCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-          {msg}
-        </div>
+        <Alert variant={msg.startsWith('Error') ? 'error' : 'success'}>
+          <span>{msg}</span>
+        </Alert>
       )}
-      <div className="flex gap-2 mb-4">
+
+      <div className="flex gap-2">
         {editing ? (
           <>
-            <GlassButton onClick={saveRules} disabled={saving}>
-              <Save className="w-4 h-4 mr-1" />{saving ? 'Saving...' : 'Save All'}
-            </GlassButton>
-            <GlassButton variant="ghost" onClick={() => setEditing(false)}>Cancel</GlassButton>
-            <GlassButton variant="secondary" size="sm" onClick={addRule}>
-              <Plus className="w-4 h-4 mr-1" />Add Rule
-            </GlassButton>
+            <Button variant="primary" onClick={saveRules} disabled={saving} className="flex items-center gap-1.5">
+              <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save All Rules'}
+            </Button>
+            <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+            <Button variant="secondary" size="sm" onClick={addRule} className="flex items-center gap-1.5">
+              <Plus className="w-4 h-4" /> Add Rule
+            </Button>
           </>
         ) : (
-          <GlassButton onClick={startEdit}><Upload className="w-4 h-4 mr-1" />Edit Rules</GlassButton>
+          <Button variant="outline" onClick={startEdit} className="flex items-center gap-1.5">
+            <Upload className="w-4 h-4" /> Edit Rules
+          </Button>
         )}
       </div>
+
       <div className="space-y-3">
         {current.map((rule, idx) => (
-          <GlassCard key={rule.id || idx}>
+          <Card key={rule.id || idx} className="p-4">
             <div className="flex gap-3">
-              <span className="text-lg font-bold text-accent shrink-0">{rule.rule_number}.</span>
+              <span className="text-base font-bold text-primary shrink-0">{rule.rule_number}.</span>
               {editing ? (
                 <div className="flex-1 space-y-2">
-                  <GlassTextarea
+                  <Textarea
                     value={rule.content}
-                    onChange={e => updateRule(idx, 'content', e.target.value)}
+                    onChange={(e: any) => updateRule(idx, 'content', e.target.value)}
                     rows={2}
                   />
-                  <GlassButton variant="ghost" size="sm" onClick={() => removeRule(idx)}>
-                    <Trash2 className="w-4 h-4 mr-1" />Remove
-                  </GlassButton>
+                  <Button variant="ghost" size="sm" onClick={() => removeRule(idx)} className="text-destructive hover:bg-destructive/10">
+                    <Trash2 className="w-4 h-4 mr-1" /> Remove
+                  </Button>
                 </div>
               ) : (
-                <p className="text-sm text-foreground whitespace-pre-line">{rule.content}</p>
+                <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{rule.content}</p>
               )}
             </div>
-          </GlassCard>
+          </Card>
         ))}
       </div>
     </div>

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { X, UploadCloud, AlertCircle, Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { Input, Select, Textarea, Button, Checkbox } from "@amazecontinuityprojects/amazeui";
+import { Input, Select, Textarea, Checkbox } from "@amazecontinuityprojects/amazeui";
+import { Button } from "@/components/custom/admin/AdminUI";
 
 export default function UploadPaperModal({ isOpen, onClose, courses, username, isAdmin = false }) {
  const [courseCode, setCourseCode] = useState("");
@@ -556,12 +557,12 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
  >
  {uploading ? (
  <>
- <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
- Uploading...
+ <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+ <span>Uploading...</span>
  </>
  ) : (
  <>
- <UploadCloud className="w-4 h-4 mr-2" /> Submit Paper
+ <UploadCloud className="w-4 h-4" /> <span>Submit Paper</span>
  </>
  )}
  </Button>

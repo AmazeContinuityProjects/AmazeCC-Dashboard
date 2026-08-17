@@ -139,7 +139,7 @@ function drawSummary(state: PdfPageState, rows: { label: string; value: string; 
   });
 }
 
-export function downloadBomPdf(order: GoroboOrderJson) {
+export function downloadBomPdf(order: GoroboOrderJson, itemMap?: Map<string, string>) {
   const doc = new jsPDF({ unit: 'pt', format: [PORTRAIT_W, PORTRAIT_H] });
   const state: PdfPageState = { doc, y: 88, footerLabel: 'bill processor', page: 1, pageWidth: PORTRAIT_W, pageHeight: PORTRAIT_H };
 
@@ -155,19 +155,29 @@ export function downloadBomPdf(order: GoroboOrderJson) {
 
   const cols: Col[] = [
     { label: '#', width: 28, align: 'right' },
-    { label: 'Item Description', width: 280 },
+    { label: 'Product Name / Description', width: 280 },
     { label: 'Qty', width: 45, align: 'right' },
     { label: 'Unit (Rs.)', width: 80, align: 'right' },
     { label: 'Amount (Rs.)', width: 82, align: 'right' },
   ];
 
-  const rows = order.items.map((line, i) => [
-    i + 1,
-    line.custom ? `${line.name} (custom)` : line.name || line.itemId || '',
-    line.quantity,
-    Number(line.unitPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
-    (Number(line.unitPrice) * Number(line.quantity)).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
-  ]);
+  const rows = order.items.map((line, i) => {
+    let displayName = line.name && line.name.trim() ? line.name : '';
+    if (!displayName && line.itemId && itemMap && itemMap.has(line.itemId)) {
+      displayName = itemMap.get(line.itemId)!;
+    }
+    if (!displayName) {
+      displayName = line.itemId || `Component #${i + 1}`;
+    }
+
+    return [
+      i + 1,
+      line.custom ? `${displayName} (custom)` : displayName,
+      line.quantity,
+      Number(line.unitPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      (Number(line.unitPrice) * Number(line.quantity)).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+    ];
+  });
 
   drawTable(state, cols, rows);
 

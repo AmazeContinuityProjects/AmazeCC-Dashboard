@@ -8,13 +8,23 @@ import os from 'os';
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/chat';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5vl:3b';
 
+function isHost(hostname: string, domain: string): boolean {
+  return hostname === domain || hostname.endsWith('.' + domain);
+}
+
 function getDirectDownloadUrl(url: string): string {
-  if (url.includes('drive.google.com')) {
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return url;
+  }
+  if (isHost(hostname, 'drive.google.com')) {
     const match = url.match(/\/d\/(.+?)\/(view|edit|usp=sharing)/) || url.match(/id=(.+?)(&|$)/);
     if (match && match[1]) return `https://drive.google.com/uc?export=download&id=${match[1]}`;
   }
-  if (url.includes('dropbox.com')) return url.replace('?dl=0', '?dl=1').replace('&dl=0', '&dl=1');
-  if (url.includes('onedrive.live.com') || url.includes('sharepoint.com') || url.includes('1drv.ms')) {
+  if (isHost(hostname, 'dropbox.com')) return url.replace('?dl=0', '?dl=1').replace('&dl=0', '&dl=1');
+  if (isHost(hostname, 'onedrive.live.com') || isHost(hostname, 'sharepoint.com') || isHost(hostname, '1drv.ms')) {
     if (url.includes('view.aspx')) return url.replace('view.aspx', 'download.aspx');
     if (url.includes('/redir')) return url.replace('/redir', '/download');
     if (url.includes('/embed')) return url.replace('/embed', '/download');
@@ -103,7 +113,12 @@ export async function processPaper(paperId: string, fileUrl: string, db: PgClien
   
   let buffer: Buffer;
   try {
-    if (fileUrl.includes('r2.cloudflarestorage.com')) {
+    let isR2Url = false;
+    try {
+      isR2Url = isHost(new URL(fileUrl).hostname.toLowerCase(), 'r2.cloudflarestorage.com');
+    } catch {}
+
+    if (isR2Url) {
       await updateOcrStatus(db, paperId, 12, `Detected Cloudflare R2 URL. Downloading via AWS SDK S3Client...`);
       const urlObj = new URL(fileUrl);
       let key = urlObj.pathname;

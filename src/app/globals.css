@@ -273,10 +273,118 @@ select:-webkit-autofill:focus {
 }
 
 @keyframes fadeIn {
- from { opacity: 0 }
- to { opacity: 1 }
+  from { opacity: 0 }
+  to { opacity: 1 }
 }
 
 .animate-fadeIn {
- animation: fadeIn 0.25s ease-out;
+  animation: fadeIn 0.25s ease-out;
 }
+
+/* ==========================================================================
+   AmazeUI Button Layout & Icon Stacking Fix
+   Ensures button components layout in a horizontal row (side-by-side) with
+   centered items, natural spacing, and uncollapsed SVG icons.
+   ========================================================================== */
+
+button:not(.flex-col),
+[role="button"]:not(.flex-col) {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  display: inline-flex !important;
+}
+
+button > svg,
+[role="button"] > svg {
+  flex-shrink: 0 !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+button > span,
+[role="button"] > span {
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+/* ==========================================================================
+   Smooth Light / Dark Mode Color Transitions & View Transitions
+   ========================================================================== */
+
+html,
+body,
+#root,
+#__next,
+main,
+aside,
+header,
+nav,
+section,
+article,
+div,
+span,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+table,
+tr,
+th,
+td,
+input,
+textarea,
+select,
+button,
+svg {
+  transition-property: background-color, border-color, color, fill, stroke, text-decoration-color, box-shadow;
+  transition-duration: 250ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Exclude active animations and inputs that must update immediately */
+.no-theme-transition,
+.no-theme-transition * {
+  transition: none !important;
+}
+
+/* Native View Transitions API support for seamless crossfade */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 250ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::view-transition-old(root) {
+  animation-name: theme-fade-out;
+}
+
+::view-transition-new(root) {
+  animation-name: theme-fade-in;
+}
+
+@keyframes theme-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes theme-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Table Layout Normalization for Perfect Column Alignment */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  text-indent: 0;
+}
+
+th {
+  text-align: inherit;
+}
+
+

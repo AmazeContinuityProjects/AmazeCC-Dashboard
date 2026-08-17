@@ -30,7 +30,7 @@ export interface GoroboOrderJson {
   phoneNumber: string;
   items: GoroboLine[];
   total: number;
-  status: 'pending' | 'confirmed' | 'completed';
+  status: 'pending' | 'confirmed' | 'completed' | 'archived';
   subtotal: number;
   discountPct: number;
   discountAmount: number;
@@ -42,6 +42,7 @@ export interface GoroboOrderJson {
   deliveryMode?: string;
   mapsUrl?: string;
   createdAt: string;
+  archivedAt?: string;
 }
 
 export interface WalletEntryJson {
@@ -155,6 +156,42 @@ export const goroboApi = {
     return handle<{ success: boolean; order: GoroboOrderJson; wallet: WalletEntryJson[] }>(
       apiFetch(`/api/admin/gorobo/orders/${id}/complete`, { method: 'POST' })
     );
+  },
+  async archiveOrder(id: string, reason?: string) {
+    try {
+      return await handle<{ success: boolean; order?: GoroboOrderJson }>(
+        apiFetch(`/api/admin/gorobo/orders/${id}/archive`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason }),
+        })
+      );
+    } catch {
+      return await handle<{ success: boolean; order?: GoroboOrderJson }>(
+        apiFetch(`/api/admin/gorobo/orders/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'archived', notes: reason ? `[ARCHIVED: ${reason}]` : '[ARCHIVED]' }),
+        })
+      );
+    }
+  },
+  async unarchiveOrder(id: string) {
+    try {
+      return await handle<{ success: boolean; order?: GoroboOrderJson }>(
+        apiFetch(`/api/admin/gorobo/orders/${id}/unarchive`, {
+          method: 'POST',
+        })
+      );
+    } catch {
+      return await handle<{ success: boolean; order?: GoroboOrderJson }>(
+        apiFetch(`/api/admin/gorobo/orders/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'pending' }),
+        })
+      );
+    }
   },
   fetchWallet() {
     return handle<{ success: boolean; summary: WalletSummary; transactions: WalletTransaction[] }>(

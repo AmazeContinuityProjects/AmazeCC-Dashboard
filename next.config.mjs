@@ -5,6 +5,7 @@ const withSerwist = withSerwistInit({
   cacheOnNavigation: true,
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
+  disable: process.env.NODE_ENV !== "production",
 });
 
 /** @type {import('next').NextConfig} */

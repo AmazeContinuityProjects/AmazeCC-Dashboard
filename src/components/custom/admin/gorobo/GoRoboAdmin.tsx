@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Boxes, Receipt } from 'lucide-react';
-import { SectionHeader } from '@/components/custom/admin/AdminUI';
+import { SectionHeader, Button } from '@/components/custom/admin/AdminUI';
 import GoRoboInventory from './GoRoboInventory';
 import GoRoboBillProcessor from './GoRoboBillProcessor';
 
@@ -14,27 +14,25 @@ export default function GoRoboAdmin() {
   const [activeSection, setActiveSection] = useState('inventory');
 
   return (
-    <div>
+    <div className="space-y-6">
       <SectionHeader
         title="GoRoBo"
         description="Manage the GoRoBo inventory (base price + margin) and process customer orders into final quotes."
       />
-      <div className="flex gap-1.5 p-1 bg-muted/50 rounded-xl border border-border/50 mb-6 overflow-x-auto">
+      <div className="flex gap-2 p-1.5 bg-muted/40 rounded-2xl border border-border/50">
         {TABS.map(tab => {
           const Icon = tab.icon;
           return (
-            <button
+            <Button
               key={tab.id}
+              variant={activeSection === tab.id ? 'primary' : 'ghost'}
+              size="sm"
               onClick={() => setActiveSection(tab.id)}
-              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-lg whitespace-nowrap transition-all flex-1 ${
-                activeSection === tab.id
-                  ? 'bg-card shadow-sm text-accent'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+              className="flex items-center gap-2 flex-1 justify-center"
             >
-              <Icon className="w-4 h-4" /> {/* icon left of label, natural flow */}
+              <Icon className="w-4 h-4" />
               {tab.label}
-            </button>
+            </Button>
           );
         })}
       </div>
