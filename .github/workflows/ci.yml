@@ -29,10 +29,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Blocks known malware families that were previously found appended to
-      # config files in this repo (crypto-drainer/C2 droppers).
+      # config files in this repo (crypto-drainer/C2 droppers). .github is
+      # excluded because this very step's patterns would match itself.
       - name: Malware signature scan
         run: |
-          if grep -rIl --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=out \
+          if grep -rIl --exclude-dir=.github --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=out \
             -e 'eth_getBlockByNumber' -e '/0x/cls' -e '/0x/ls' -e 'global\.i="A9-971-1"' \
             -e 'x-payload-b64' -e 'app-vscode-eval' .; then
             echo "::error::Suspicious malware markers found in tracked files!"
