@@ -1,0 +1,163 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, beta]
+  push:
+    branches: [beta]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  safety:
+    name: Safety checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Blocks known malware families that were previously found appended to
+      # config files in this repo (crypto-drainer/C2 droppers).
+      - name: Malware signature scan
+        run: |
+          if grep -rIl --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=out \
+            -e 'eth_getBlockByNumber' -e '/0x/cls' -e '/0x/ls' -e 'global\.i="A9-971-1"' \
+            -e 'x-payload-b64' -e 'app-vscode-eval' .; then
+            echo "::error::Suspicious malware markers found in tracked files!"
+            exit 1
+          fi
+          echo "No malware markers found."
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Dependency audit
+        # Reports high/critical advisories. Non-blocking: the remaining 9 high
+        # advisories are pinned in dev/build tooling (wrangler, metro, types
+        # packages, unused sharp) with no compatible-range fix. Set
+        # continue-on-error to false to make audit a hard merge gate.
+        continue-on-error: true
+        run: pnpm audit --audit-level=high
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: pnpm lint
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run TypeScript typecheck
+        run: pnpm typecheck
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        run: pnpm test
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # canvas ships prebuilt binaries for ubuntu x64; these system libs are a
+      # fallback in case a prebuild is missing for the runner image.
+      - name: Install canvas system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+
+      - name: Build with Next.js
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'ci-placeholder-vapid-key' }}
+
+      - name: Verify static export output
+        run: test -f out/index.html && echo "Export OK"

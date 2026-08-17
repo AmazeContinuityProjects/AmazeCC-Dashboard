@@ -40,25 +40,25 @@ export default function PushNotificationManager() {
  });
  }, [UserID]);
 
- useEffect(() => {
- if ('serviceWorker' in navigator && 'PushManager' in window) {
- setIsSupported(true)
- registerServiceWorker()
- }
- }, [])
+async function registerServiceWorker() {
+  try {
+  const registration = await navigator.serviceWorker.register('/sw.js')
+  const sub = await registration.pushManager.getSubscription()
+  setSubscription(sub)
+  } catch (e) {
+  console.error("Service worker registration failed", e);
+  }
+  }
 
- async function registerServiceWorker() {
- try {
- const registration = await navigator.serviceWorker.register('/sw.js')
- const sub = await registration.pushManager.getSubscription()
- setSubscription(sub)
- } catch (e) {
- console.error("Service worker registration failed", e);
- }
- }
+  useEffect(() => {
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+  setIsSupported(true)
+  registerServiceWorker()
+  }
+  }, [])
 
- async function subscribeToPush() {
- const permission = await Notification.requestPermission()
+  async function subscribeToPush() {
+  const permission = await Notification.requestPermission()
  if (permission !== 'granted') return
 
  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;

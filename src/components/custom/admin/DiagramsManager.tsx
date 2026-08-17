@@ -69,7 +69,7 @@ export default function DiagramsManager() {
  const question = questions.find(q => q.question_id === questionId);
  if (!question) return;
 
- let updatedUrls = [...(question.image_urls || [])];
+ const updatedUrls = [...(question.image_urls || [])];
  if (replaceIdx !== undefined && replaceIdx >= 0 && replaceIdx < updatedUrls.length) {
  updatedUrls[replaceIdx] = newImageUrl;
  } else {
