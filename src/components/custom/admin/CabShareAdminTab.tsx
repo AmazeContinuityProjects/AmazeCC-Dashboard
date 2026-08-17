@@ -14,11 +14,6 @@ export default function CabShareAdminTab() {
   const [promoteEnabled, setPromoteEnabled] = useState(false);
   const [promoteToggling, setPromoteToggling] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-    fetchPromoteState();
-  }, []);
-
   const fetchPromoteState = async () => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.amazecc.vit.ac.in'}/api/settings/global`);
@@ -57,6 +52,11 @@ export default function CabShareAdminTab() {
     } catch (e) {}
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchData();
+    fetchPromoteState();
+  }, []);
 
   const handleDeleteTrip = async (tripId: number) => {
     if (!confirm("Delete this trip?")) return;

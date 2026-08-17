@@ -5,3 +5,15 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   workerd: true
+
+# Force patched versions of known-vulnerable transitive deps.
+overrides:
+  nanoid: 3.3.18
+  js-yaml: 4.3.1
+  postcss: 8.5.23
+  minimatch@<5>brace-expansion: 1.1.18
+  minimatch@>=5>brace-expansion: 2.1.4
+  # Next.js security patches (SSRF/DoS in rewrites & Server Actions).
+  next: 16.2.11
+  # cheerio scraping runtime: undici fixes.
+  cheerio>undici: 7.29.0

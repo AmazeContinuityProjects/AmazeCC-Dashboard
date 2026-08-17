@@ -174,7 +174,7 @@ export default function QuestionsManager() {
 
  // Sorting logic
  const sortQuestions = (a: Question, b: Question) => {
- let factor = sortOrder === 'asc' ? 1 : -1;
+ const factor = sortOrder === 'asc' ? 1 : -1;
  if (sortBy === 'marks') {
  return (a.marks - b.marks) * factor;
  }
