@@ -8,8 +8,9 @@ import {
 import { 
   Sidebar as ReusableSidebar, 
   SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel,
-  SidebarFooter, ThemeSwitcher
+  SidebarFooter
 } from "@amazecontinuityprojects/amazeui";
+import { ThemeSwitcher } from "@/components/custom/ThemeSwitcher";
 
 const navGroups = [
   {

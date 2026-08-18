@@ -1,50 +1,47 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { 
- Database, RefreshCw, HardDrive, FileText, Image, Trash2, 
- Search, ShieldAlert, Sparkles, HelpCircle, Server, AlertTriangle
+  Database, RefreshCw, HardDrive, FileText, Image, Trash2, 
+  Search, ShieldAlert, Sparkles, Server, AlertTriangle
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
-import { GlassCard, GlassButton, SectionHeader, LoadingSpinner } from '@/components/custom/admin/AdminUI';
+import { isRemoteUrl } from '@/lib/url';
+import { 
+  Card, 
+  Button, 
+  SectionHeader, 
+  LoadingSpinner, 
+  Badge, 
+  Alert, 
+  ProgressBar, 
+  EmptyState 
+} from '@/components/custom/admin/AdminUI';
 
 interface StorageStats {
- totalSize: number;
- r2Count: number;
- otherCount: number;
- jsonCount: number;
- diagramCount: number;
- largestFiles: Array<{
- source_id: string;
- course_code: string;
- title: string;
- file_size: number;
- storage_provider: string;
- created_at: string;
- file_url: string;
- }>;
- recentUploads: Array<{
- source_id: string;
- course_code: string;
- title: string;
- file_size: number;
- storage_provider: string;
- created_at: string;
- file_url: string;
- }>;
+  totalSize: number;
+  r2Count: number;
+  otherCount: number;
+  jsonCount: number;
+  diagramCount: number;
+  largestFiles: Array<{
+    source_id: string;
+    course_code: string;
+    title: string;
+    file_size: number;
+    storage_provider: string;
+    created_at: string;
+    file_url: string;
+  }>;
+  recentUploads: Array<{
+    source_id: string;
+    course_code: string;
+    title: string;
+    file_size: number;
+    storage_provider: string;
+    created_at: string;
+    file_url: string;
+  }>;
 }
-
-const isRemoteUrl = (url: string) => {
-  if (!url || url === 'DIRECT_JSON') return false;
-  const lowerUrl = url.toLowerCase();
-  return (
-    lowerUrl.includes('drive.google') ||
-    lowerUrl.includes('onedrive') ||
-    lowerUrl.includes('dropbox') ||
-    lowerUrl.includes('sharepoint') ||
-    lowerUrl.includes('live.com') ||
-    lowerUrl.includes('docs.google')
-  );
-};
 
 export default function StorageManager() {
   const [stats, setStats] = useState<StorageStats | null>(null);
@@ -71,7 +68,6 @@ export default function StorageManager() {
       setLoading(true);
       setError(null);
       
-      // Try fetching from the storage API
       const res = await apiFetch('/api/admin/storage');
       if (res.ok) {
         const json = await res.json();
@@ -81,9 +77,7 @@ export default function StorageManager() {
         }
       }
 
-      // Fallback: Calculate stats client-side by querying existing queue and questions APIs
-      console.log('Production /api/admin/storage returned error or is missing. Running client-side stats calculation fallback...');
-      
+      // Fallback: Calculate stats client-side by querying existing queue
       const queueRes = await apiFetch('/api/qbank/admin/queue');
       if (!queueRes.ok) {
         throw new Error(`Failed to load storage data (API returned ${res.status}, and fallback queue returned ${queueRes.status})`);
@@ -133,7 +127,7 @@ export default function StorageManager() {
         if (questionsRes.ok) {
           const qJson = await questionsRes.json();
           if (qJson.success && qJson.data) {
-            diagramCount = qJson.data.filter((q: any) => q.diagram_url).length;
+            diagramCount = qJson.data.filter((q: any) => q.diagram_url || q.has_diagram).length;
           }
         }
       } catch (e) {
@@ -157,38 +151,38 @@ export default function StorageManager() {
     }
   };
 
- useEffect(() => {
- fetchStats();
- }, []);
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
- const runAction = async (action: 'rebuild_metadata' | 'delete_orphaned' | 'find_missing') => {
- if (action === 'delete_orphaned' && !confirm('Are you sure you want to permanently delete rejected paper files from Cloudflare R2? This action is irreversible.')) {
- return;
- }
- 
- setActioning(action);
- setMissingReport(null);
- try {
- const res = await apiFetch('/api/admin/storage', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ action })
- });
- const json = await res.json();
- 
- if (json.success) {
- if (action === 'find_missing') {
- setMissingReport(json.missing || []);
- alert(`Check complete. Found ${json.missingCount} items with missing file paths.`);
- } else {
- alert(json.message || 'Action executed successfully.');
- fetchStats();
- }
- } else {
- alert('Action failed: ' + json.error);
- }
- } catch (err: any) {
- alert('Error: ' + err.message);
+  const runAction = async (action: 'rebuild_metadata' | 'delete_orphaned' | 'find_missing') => {
+    if (action === 'delete_orphaned' && !confirm('Are you sure you want to permanently delete rejected paper files from Cloudflare R2? This action is irreversible.')) {
+      return;
+    }
+    
+    setActioning(action);
+    setMissingReport(null);
+    try {
+      const res = await apiFetch('/api/admin/storage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+      const json = await res.json();
+      
+      if (json.success) {
+        if (action === 'find_missing') {
+          setMissingReport(json.missing || []);
+          alert(`Check complete. Found ${json.missingCount} items with missing file paths.`);
+        } else {
+          alert(json.message || 'Action executed successfully.');
+          fetchStats();
+        }
+      } else {
+        alert('Action failed: ' + json.error);
+      }
+    } catch (err: any) {
+      alert('Error: ' + err.message);
     } finally {
       setActioning(null);
     }
@@ -284,298 +278,303 @@ export default function StorageManager() {
   };
 
   const formatBytes = (bytes: any, decimals = 2) => {
- const num = Number(bytes);
- if (isNaN(num) || num <= 0) return '0 Bytes';
- const k = 1024;
- const dm = decimals < 0 ? 0 : decimals;
- const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
- const i = Math.floor(Math.log(num) / Math.log(k));
- if (i < 0) return '0 Bytes';
- return parseFloat((num / Math.pow(k, i)).toFixed(dm)) + ' ' + (sizes[i] || 'Bytes');
- };
+    const num = Number(bytes);
+    if (isNaN(num) || num <= 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(num) / Math.log(k));
+    if (i < 0) return '0 Bytes';
+    return parseFloat((num / Math.pow(k, i)).toFixed(dm)) + ' ' + (sizes[i] || 'Bytes');
+  };
 
   if (loading && !stats) {
     return (
-      <div className="text-center py-20 min-h-[60vh] flex flex-col items-center justify-center space-y-4 animate-fadeIn">
-        <LoadingSpinner />
-        <p className="text-sm text-gray-500 animate-pulse">Loading storage analysis...</p>
+      <div className="text-center py-20 flex flex-col items-center justify-center space-y-4">
+        <LoadingSpinner size="lg" />
+        <p className="text-sm text-muted-foreground">Loading storage analysis...</p>
       </div>
     );
   }
 
   if (!stats) {
     return (
-      <div className="text-center py-20 min-h-[60vh] flex flex-col items-center justify-center space-y-6 max-w-md mx-auto px-4 animate-fadeIn">
-        <div className="p-4 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-full">
+      <div className="text-center py-20 flex flex-col items-center justify-center space-y-6 max-w-md mx-auto px-4">
+        <div className="p-4 bg-destructive/10 text-destructive rounded-full">
           <ShieldAlert className="w-10 h-10" />
         </div>
         <div className="space-y-2">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Unable to load storage data</h3>
-          <p className="text-sm text-gray-550 dark:text-gray-400 leading-relaxed">
+          <h3 className="text-lg font-bold text-foreground">Unable to load storage data</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
             {error || 'Failed to load storage analysis. Please verify your administrative credentials and connection.'}
           </p>
         </div>
-        <GlassButton onClick={fetchStats} variant="secondary" className="px-6 py-2.5 flex items-center gap-2">
+        <Button onClick={fetchStats} variant="primary" className="flex items-center gap-2">
           <RefreshCw className="w-4 h-4" /> Retry Connection
-        </GlassButton>
+        </Button>
       </div>
     );
   }
 
- const s = stats || {
- totalSize: 0,
- r2Count: 0,
- otherCount: 0,
- jsonCount: 0,
- diagramCount: 0,
- largestFiles: [],
- recentUploads: []
- };
+  const s = stats || {
+    totalSize: 0,
+    r2Count: 0,
+    otherCount: 0,
+    jsonCount: 0,
+    diagramCount: 0,
+    largestFiles: [],
+    recentUploads: []
+  };
 
- return (
- <div className="space-y-6">
- <SectionHeader 
- title="Storage & Asset Manager" 
- description="Monitor system storage quotas, manage S3 integrations, analyze largest PDF uploads, and prune orphaned files."
- />
+  return (
+    <div className="space-y-6 animate-fadeIn">
+      <SectionHeader 
+        title="Storage & Asset Manager" 
+        description="Monitor system storage quotas, manage Cloudflare R2 bucket integration, analyze large PDF uploads, and prune orphaned files."
+      />
 
- {/* Grid of Storage metrics */}
- <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
- {/* Storage Size usage */}
- <GlassCard className="flex flex-col justify-between">
- <div className="flex justify-between items-start">
- <div className="space-y-1">
- <span className="text-xs text-gray-500 font-semibold tracking-wider uppercase">Disk Storage Used</span>
- <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white">
- {formatBytes(s?.totalSize || 0)}
- </h3>
- </div>
- <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-500 rounded-xl">
- <HardDrive className="w-5 h-5" />
- </div>
- </div>
- <div className="pt-4 border-t border-gray-100 dark:border-slate-800/80 mt-4 flex items-center justify-between text-xs text-gray-500">
- <span>Quota limit: None</span>
- <span className="font-semibold text-emerald-600 dark:text-emerald-400">100% Operational</span>
- </div>
- </GlassCard>
+      {/* Grid of Storage metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Storage Size usage */}
+        <Card className="flex flex-col justify-between p-5 space-y-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Disk Storage Used</span>
+              <h3 className="text-3xl font-black text-foreground font-display mt-1">
+                {formatBytes(s?.totalSize || 0)}
+              </h3>
+            </div>
+            <div className="p-3 bg-primary/10 text-primary rounded-xl">
+              <HardDrive className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="pt-3 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+            <span>Quota limit: Unlimited</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">100% Operational</span>
+          </div>
+        </Card>
 
- {/* Cloudflare R2 count */}
- <GlassCard className="flex flex-col justify-between">
- <div className="flex justify-between items-start">
- <div className="space-y-1">
- <span className="text-xs text-gray-500 font-semibold tracking-wider uppercase">Cloudflare R2 Files</span>
- <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white">
- {s?.r2Count || 0} <span className="text-sm font-semibold text-gray-400">PDFs</span>
- </h3>
- </div>
- <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-xl">
- <Server className="w-5 h-5" />
- </div>
- </div>
- <div className="pt-4 border-t border-gray-100 dark:border-slate-800/80 mt-4 text-xs text-gray-500 flex justify-between">
- <span>Bucket: amazecc-pap</span>
- <span className="font-semibold text-blue-600 dark:text-blue-400">Private Bucket</span>
- </div>
- </GlassCard>
+        {/* Cloudflare R2 count */}
+        <Card className="flex flex-col justify-between p-5 space-y-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Cloudflare R2 Files</span>
+              <h3 className="text-3xl font-black text-foreground font-display mt-1">
+                {s?.r2Count || 0} <span className="text-sm font-semibold text-muted-foreground">PDFs</span>
+              </h3>
+            </div>
+            <div className="p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
+              <Server className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="pt-3 border-t border-border/50 text-xs text-muted-foreground flex justify-between">
+            <span>Bucket: amazecc-pap</span>
+            <Badge variant="success" size="sm">Private Bucket</Badge>
+          </div>
+        </Card>
 
- {/* Diagrams / Assets count */}
- <GlassCard className="flex flex-col justify-between">
- <div className="flex justify-between items-start">
- <div className="space-y-1">
- <span className="text-xs text-gray-500 font-semibold tracking-wider uppercase">Supabase Assets</span>
- <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white">
- {s?.diagramCount || 0} <span className="text-sm font-semibold text-gray-400">diagrams</span>
- </h3>
- </div>
- <div className="p-3 bg-purple-50 dark:bg-purple-900/20 text-purple-500 rounded-xl">
- <Image className="w-5 h-5" />
- </div>
- </div>
- <div className="pt-4 border-t border-gray-100 dark:border-slate-800/80 mt-4 text-xs text-gray-500 flex justify-between">
- <span>Bucket: qbank (Supabase)</span>
- <span className="font-semibold text-purple-600 dark:text-purple-400">Public CDN</span>
- </div>
- </GlassCard>
- </div>
+        {/* Diagrams / Assets count */}
+        <Card className="flex flex-col justify-between p-5 space-y-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Supabase Assets</span>
+              <h3 className="text-3xl font-black text-foreground font-display mt-1">
+                {s?.diagramCount || 0} <span className="text-sm font-semibold text-muted-foreground">diagrams</span>
+              </h3>
+            </div>
+            <div className="p-3 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-xl">
+              <Image className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="pt-3 border-t border-border/50 text-xs text-muted-foreground flex justify-between">
+            <span>Bucket: qbank (Supabase)</span>
+            <Badge variant="info" size="sm">Public CDN</Badge>
+          </div>
+        </Card>
+      </div>
 
- {/* Storage Providers Breakdown */}
- <GlassCard className="space-y-4">
- <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Storage Provider Breakdown</h4>
- <div className="grid grid-cols-3 gap-4 text-center">
- <div className="p-4 rounded-2xl bg-gray-50/50 dark:bg-slate-950/20 border border-gray-100 dark:border-slate-800">
- <span className="text-[10px] font-bold text-gray-400 uppercase">Cloudflare R2</span>
- <p className="text-xl font-extrabold mt-1 text-gray-950 dark:text-white">{s?.r2Count || 0} files</p>
- </div>
- <div className="p-4 rounded-2xl bg-gray-50/50 dark:bg-slate-950/20 border border-gray-100 dark:border-slate-800">
- <span className="text-[10px] font-bold text-gray-400 uppercase">Google Drive / Other</span>
- <p className="text-xl font-extrabold mt-1 text-gray-950 dark:text-white">{s?.otherCount || 0} links</p>
- </div>
- <div className="p-4 rounded-2xl bg-gray-50/50 dark:bg-slate-950/20 border border-gray-100 dark:border-slate-800">
- <span className="text-[10px] font-bold text-gray-400 uppercase">JSON / Text Only</span>
- <p className="text-xl font-extrabold mt-1 text-gray-950 dark:text-white">{s?.jsonCount || 0} entries</p>
- </div>
- </div>
- </GlassCard>
+      {/* Storage Providers Breakdown */}
+      <Card className="p-5 space-y-4">
+        <h4 className="text-sm font-bold text-foreground">Storage Provider Distribution</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+          <div className="p-4 rounded-2xl bg-muted/40 border border-border/50">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Cloudflare R2</span>
+            <p className="text-2xl font-black mt-1 text-foreground font-mono">{s?.r2Count || 0} files</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-muted/40 border border-border/50">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Google Drive / Remote</span>
+            <p className="text-2xl font-black mt-1 text-foreground font-mono">{s?.otherCount || 0} links</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-muted/40 border border-border/50">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">JSON / Text Only</span>
+            <p className="text-2xl font-black mt-1 text-foreground font-mono">{s?.jsonCount || 0} entries</p>
+          </div>
+        </div>
+      </Card>
 
-  {/* Storage Maintenance Actions */}
-  <GlassCard className="space-y-4">
-  <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Storage Maintenance Actions</h4>
-  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-  <button 
-  onClick={() => runAction('delete_orphaned')}
-  disabled={actioning !== null}
-  className="flex items-center justify-center gap-2 p-3 bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-950/20 dark:hover:bg-red-950/40 dark:text-red-400 border border-red-100 dark:border-red-900/40 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
-  >
-  <Trash2 className="w-4 h-4" /> 
-  {actioning === 'delete_orphaned' ? 'Deleting...' : 'Prune Rejected Files'}
-  </button>
-  
-  <button 
-  onClick={() => runAction('find_missing')}
-  disabled={actioning !== null}
-  className="flex items-center justify-center gap-2 p-3 bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
-  >
-  <ShieldAlert className="w-4 h-4" /> 
-  {actioning === 'find_missing' ? 'Checking...' : 'Find Missing Files'}
-  </button>
+      {/* Storage Maintenance Actions */}
+      <Card className="p-5 space-y-4">
+        <h4 className="text-sm font-bold text-foreground">Storage Maintenance Actions</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Button 
+            variant="destructive"
+            onClick={() => runAction('delete_orphaned')}
+            disabled={actioning !== null}
+            className="flex items-center justify-center gap-2 h-11"
+          >
+            <Trash2 className="w-4 h-4" /> 
+            {actioning === 'delete_orphaned' ? 'Deleting...' : 'Prune Rejected Files'}
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={() => runAction('find_missing')}
+            disabled={actioning !== null}
+            className="flex items-center justify-center gap-2 h-11"
+          >
+            <ShieldAlert className="w-4 h-4" /> 
+            {actioning === 'find_missing' ? 'Checking...' : 'Find Missing Files'}
+          </Button>
 
-  <button 
-  onClick={() => runAction('rebuild_metadata')}
-  disabled={actioning !== null}
-  className="flex items-center justify-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/20 dark:hover:bg-blue-950/40 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
-  >
-  <Sparkles className="w-4 h-4" /> 
-  {actioning === 'rebuild_metadata' ? 'Rebuilding...' : 'Rebuild Metadata'}
-  </button>
+          <Button 
+            variant="secondary"
+            onClick={() => runAction('rebuild_metadata')}
+            disabled={actioning !== null}
+            className="flex items-center justify-center gap-2 h-11"
+          >
+            <Sparkles className="w-4 h-4" /> 
+            {actioning === 'rebuild_metadata' ? 'Rebuilding...' : 'Rebuild Metadata'}
+          </Button>
 
-  <button 
-  onClick={migrateRemoteFiles}
-  disabled={actioning !== null}
-  className="flex items-center justify-center gap-2 p-3 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/20 dark:hover:bg-purple-950/40 dark:text-purple-400 border border-purple-100 dark:border-purple-900/40 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
-  >
-  <HardDrive className="w-4 h-4" /> 
-  {actioning === 'migrate_remote' ? 'Migrating...' : 'Migrate Drive Links'}
-  </button>
-  </div>
+          <Button 
+            variant="primary"
+            onClick={migrateRemoteFiles}
+            disabled={actioning !== null}
+            className="flex items-center justify-center gap-2 h-11"
+          >
+            <HardDrive className="w-4 h-4" /> 
+            {actioning === 'migrate_remote' ? 'Migrating...' : 'Migrate Drive Links'}
+          </Button>
+        </div>
 
-  {/* Missing Files Report Display */}
-  {missingReport && (
-  <div className="p-4 bg-gray-50/50 dark:bg-slate-950/20 rounded-2xl border border-gray-200 dark:border-gray-800 space-y-2">
-  <h5 className="text-xs font-bold text-gray-850 dark:text-gray-200">Missing File Reference Audit Report</h5>
-  {missingReport.length === 0 ? (
-  <p className="text-xs text-green-600 dark:text-green-400">All database paper records reference valid files or direct JSON.</p>
-  ) : (
-  <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
-  {missingReport.map((m, idx) => (
-  <div key={idx} className="flex justify-between text-xs bg-white dark:bg-slate-900 p-2 rounded-lg border border-gray-100 dark:border-gray-800">
-  <span className="font-semibold text-gray-900 dark:text-white">{m.course_code} - {m.title}</span>
-  <span className="text-red-500">Missing URL</span>
-  </div>
-  ))}
-  </div>
-  )}
-  </div>
-  )}
+        {/* Missing Files Report Display */}
+        {missingReport && (
+          <div className="p-4 bg-muted/40 rounded-2xl border border-border/50 space-y-2">
+            <h5 className="text-xs font-bold text-foreground">Missing File Reference Audit Report</h5>
+            {missingReport.length === 0 ? (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">All database paper records reference valid files or direct JSON.</p>
+            ) : (
+              <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
+                {missingReport.map((m, idx) => (
+                  <div key={idx} className="flex justify-between text-xs bg-card p-2.5 rounded-xl border border-border/50">
+                    <span className="font-semibold text-foreground">{m.course_code} - {m.title}</span>
+                    <span className="text-destructive font-medium">Missing URL</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-  {/* Google Drive Migration Status */}
-  {migrationStatus.status !== 'idle' && (
-  <div className="p-4 bg-gray-50/50 dark:bg-slate-950/20 rounded-2xl border border-gray-200 dark:border-gray-800 space-y-4 animate-fadeIn">
-  <div className="flex justify-between items-center">
-  <h5 className="text-xs font-bold text-gray-855 dark:text-gray-205 uppercase tracking-wider flex items-center gap-2">
-  {migrationStatus.status === 'scanning' && <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-500" />}
-  {migrationStatus.status === 'migrating' && <RefreshCw className="w-3.5 h-3.5 animate-spin text-purple-500" />}
-  {migrationStatus.status === 'completed' && <Database className="w-3.5 h-3.5 text-green-500" />}
-  Google Drive Migration Status
-  </h5>
-  {migrationStatus.status === 'completed' && (
-  <button 
-  onClick={() => setMigrationStatus({ status: 'idle', current: 0, total: 0, currentTitle: '', errors: [] })}
-  className="text-[10px] bg-gray-250 dark:bg-slate-800 text-gray-600 dark:text-gray-300 px-2.5 py-1 rounded-lg hover:bg-gray-300 transition-colors"
-  >
-  Dismiss
-  </button>
-  )}
-  </div>
+        {/* Migration Status */}
+        {migrationStatus.status !== 'idle' && (
+          <div className="p-4 bg-muted/40 rounded-2xl border border-border/50 space-y-3 animate-fadeIn">
+            <div className="flex justify-between items-center">
+              <h5 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                {migrationStatus.status === 'scanning' && <RefreshCw className="w-3.5 h-3.5 animate-spin text-primary" />}
+                {migrationStatus.status === 'migrating' && <RefreshCw className="w-3.5 h-3.5 animate-spin text-primary" />}
+                {migrationStatus.status === 'completed' && <Database className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
+                Google Drive Migration Status
+              </h5>
+              {migrationStatus.status === 'completed' && (
+                <Button 
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setMigrationStatus({ status: 'idle', current: 0, total: 0, currentTitle: '', errors: [] })}
+                  className="h-7 text-xs"
+                >
+                  Dismiss
+                </Button>
+              )}
+            </div>
 
-  <div className="space-y-2">
-  <div className="flex justify-between text-xs text-gray-500">
-  <span className="truncate max-w-[70%]">{migrationStatus.currentTitle || (migrationStatus.status === 'scanning' ? 'Scanning papers...' : 'Waiting...')}</span>
-  {migrationStatus.total > 0 && (
-  <span>{migrationStatus.current} / {migrationStatus.total} ({Math.round((migrationStatus.current / migrationStatus.total) * 100)}%)</span>
-  )}
-  </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span className="truncate max-w-[70%]">{migrationStatus.currentTitle || (migrationStatus.status === 'scanning' ? 'Scanning papers...' : 'Waiting...')}</span>
+                {migrationStatus.total > 0 && (
+                  <span>{migrationStatus.current} / {migrationStatus.total} ({Math.round((migrationStatus.current / migrationStatus.total) * 100)}%)</span>
+                )}
+              </div>
 
-  {migrationStatus.total > 0 && (
-  <div className="w-full bg-gray-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-  <div 
-  className={`h-full transition-all duration-350 ${migrationStatus.status === 'completed' ? 'bg-green-500' : 'bg-purple-600'}`}
-  style={{ width: `${(migrationStatus.current / migrationStatus.total) * 100}%` }}
-  />
-  </div>
-  )}
-  </div>
+              {migrationStatus.total > 0 && (
+                <ProgressBar 
+                  value={Math.round((migrationStatus.current / migrationStatus.total) * 100)} 
+                  color={migrationStatus.status === 'completed' ? 'emerald' : 'blue'}
+                  size="sm"
+                />
+              )}
+            </div>
 
-  {migrationStatus.errors.length > 0 && (
-  <div className="space-y-1.5 pt-2 border-t border-gray-150 dark:border-gray-800">
-  <p className="text-[11px] font-bold text-red-500 uppercase tracking-wider">Migration Issues ({migrationStatus.errors.length})</p>
-  <div className="max-h-24 overflow-y-auto space-y-1 pr-2">
-  {migrationStatus.errors.map((err, idx) => (
-  <p key={idx} className="text-[10px] text-red-400 font-mono leading-normal">{err}</p>
-  ))}
-  </div>
-  </div>
-  )}
-  </div>
-  )}
-  </GlassCard>
+            {migrationStatus.errors.length > 0 && (
+              <div className="space-y-1.5 pt-2 border-t border-border/50">
+                <p className="text-xs font-bold text-destructive uppercase tracking-wider">Migration Issues ({migrationStatus.errors.length})</p>
+                <div className="max-h-24 overflow-y-auto space-y-1 pr-2">
+                  {migrationStatus.errors.map((err, idx) => (
+                    <p key={idx} className="text-xs text-destructive/80 font-mono">{err}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
 
- {/* Lists Section: Largest and Recent files */}
- <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
- {/* Largest Files */}
- <GlassCard className="space-y-4">
- <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
- <AlertTriangle className="w-4 h-4 text-amber-500" /> Largest Files in Storage
- </h4>
- <div className="space-y-2.5">
- {s.largestFiles && s.largestFiles.length > 0 ? (
- s.largestFiles.map(f => (
- <div key={f.source_id} className="flex items-center justify-between text-xs p-3 bg-gray-50/50 dark:bg-slate-950/20 border border-gray-100 dark:border-slate-800/80 rounded-xl hover:bg-gray-100/50 transition-colors">
- <div className="space-y-0.5 max-w-[70%]">
- <p className="font-bold text-gray-900 dark:text-white truncate">{f.title}</p>
- <p className="text-[10px] text-gray-500">{f.course_code} &bull; {f.storage_provider}</p>
- </div>
- <span className="font-bold text-gray-700 dark:text-gray-300">{formatBytes(f.file_size)}</span>
- </div>
- ))
- ) : (
- <p className="text-xs text-gray-400 italic text-center py-6">No large files found.</p>
- )}
- </div>
- </GlassCard>
+      {/* Lists Section: Largest and Recent files */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Largest Files */}
+        <Card className="p-5 space-y-4">
+          <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-500" /> Largest Files in Storage
+          </h4>
+          <div className="space-y-2.5">
+            {s.largestFiles && s.largestFiles.length > 0 ? (
+              s.largestFiles.map(f => (
+                <div key={f.source_id} className="flex items-center justify-between text-xs p-3 bg-muted/40 border border-border/40 rounded-xl">
+                  <div className="space-y-0.5 max-w-[70%]">
+                    <p className="font-bold text-foreground truncate">{f.title}</p>
+                    <p className="text-[11px] text-muted-foreground">{f.course_code} &bull; {f.storage_provider}</p>
+                  </div>
+                  <span className="font-mono font-bold text-foreground">{formatBytes(f.file_size)}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground italic text-center py-6">No large files found.</p>
+            )}
+          </div>
+        </Card>
 
- {/* Recent Uploads */}
- <GlassCard className="space-y-4">
- <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
- <FileText className="w-4 h-4 text-blue-500" /> Recent Uploaded Papers
- </h4>
- <div className="space-y-2.5">
- {s.recentUploads && s.recentUploads.length > 0 ? (
- s.recentUploads.map(f => (
- <div key={f.source_id} className="flex items-center justify-between text-xs p-3 bg-gray-50/50 dark:bg-slate-950/20 border border-gray-100 dark:border-slate-800/80 rounded-xl hover:bg-gray-100/50 transition-colors">
- <div className="space-y-0.5 max-w-[70%]">
- <p className="font-bold text-gray-900 dark:text-white truncate">{f.title}</p>
- <p className="text-[10px] text-gray-500">{new Date(f.created_at).toLocaleDateString()} &bull; {f.course_code}</p>
- </div>
- <span className="text-gray-500 font-semibold">{f.file_size ? formatBytes(f.file_size) : 'Link'}</span>
- </div>
- ))
- ) : (
- <p className="text-xs text-gray-400 italic text-center py-6">No recent uploads available.</p>
- )}
- </div>
- </GlassCard>
- </div>
- </div>
- );
+        {/* Recent Uploads */}
+        <Card className="p-5 space-y-4">
+          <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <FileText className="w-4 h-4 text-primary" /> Recent Uploaded Papers
+          </h4>
+          <div className="space-y-2.5">
+            {s.recentUploads && s.recentUploads.length > 0 ? (
+              s.recentUploads.map(f => (
+                <div key={f.source_id} className="flex items-center justify-between text-xs p-3 bg-muted/40 border border-border/40 rounded-xl">
+                  <div className="space-y-0.5 max-w-[70%]">
+                    <p className="font-bold text-foreground truncate">{f.title}</p>
+                    <p className="text-[11px] text-muted-foreground">{new Date(f.created_at).toLocaleDateString('en-IN')} &bull; {f.course_code}</p>
+                  </div>
+                  <span className="text-muted-foreground font-mono font-semibold">{f.file_size ? formatBytes(f.file_size) : 'Link'}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground italic text-center py-6">No recent uploads available.</p>
+            )}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Button } from "@amazecontinuityprojects/amazeui";
+import { Button } from "@/components/ui/button";
 
 const CHEPUS = [
  "/chepu/chepu_on_the_floor.png",

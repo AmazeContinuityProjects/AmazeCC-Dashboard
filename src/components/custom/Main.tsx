@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { apiFetch, fetcher } from "@/lib/api";
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
-import { Input, Button } from "@amazecontinuityprojects/amazeui";
+import { Input, Button } from "@/components/custom/admin/AdminUI";
 
 const AdminLayout = dynamic(() => import('@/components/custom/admin/AdminLayout'), { ssr: false });
 const AdminLandingPage = dynamic(() => import('@/components/custom/admin/AdminLandingPage'), { ssr: false });
@@ -259,9 +259,9 @@ export default function LoginPage() {
   </div>
   <div className="bg-card/60 backdrop-blur-2xl border border-border/50 rounded-2xl p-6">
   <h3 className="text-lg font-semibold text-foreground mb-4">Actions</h3>
-  <button onClick={handleLogout} className="w-full px-4 py-2.5 bg-danger hover:bg-danger/90 text-white font-medium rounded-xl transition-colors">
-  Logout
-  </button>
+  <Button variant="destructive" onClick={handleLogout} className="w-full">
+    Logout
+  </Button>
   </div>
   </div>
   </div>

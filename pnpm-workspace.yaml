@@ -13,7 +13,19 @@ overrides:
   postcss: 8.5.23
   minimatch@<5>brace-expansion: 1.1.18
   minimatch@>=5>brace-expansion: 2.1.4
-  # Next.js security patches (SSRF/DoS in rewrites & Server Actions).
-  next: 16.2.11
-  # cheerio scraping runtime: undici fixes.
-  cheerio>undici: 7.29.0
+  # Next.js security patches (SSRF/DoS in rewrites & Server Actions); 16.3.1 also
+  # bumps optional sharp to ^0.35.3, fixing libvips CVEs (CVE-2026-33327/8, 35590/1).
+  next: 16.3.1
+  # undici fixes (TLS/SOCKS5, WebSocket DoS, cache & cookie injection): 7.29.0 covers
+  # all current advisories for both cheerio and miniflare.
+  undici: 7.29.0
+  # form-data CRLF injection via unescaped multipart field names/filenames (>=4.0.6).
+  form-data: 4.0.6
+  # body-parser DoS when an invalid limit silently disables size enforcement (>=2.3.0).
+  body-parser: 2.3.0
+  # DOMPurify: ALLOWED_ATTR pollution, IN_PLACE hook XSS, Trusted Types + custom
+  # element bypasses (>=3.4.13).
+  dompurify: 3.4.13
+  # uuid missing buffer bounds check in v3/v5/v6 (>=11.1.1); no 7.x backport exists,
+  # 11.1.1 ships a CJS build so xcode's require('uuid') keeps working.
+  xcode>uuid: 11.1.1
