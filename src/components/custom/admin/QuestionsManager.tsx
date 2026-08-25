@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, RefreshCw, LayoutGrid, CheckCircle, Trash2,
-  Check, X, FolderPlus, Tag, ArrowRightLeft, Image as ImageIcon, Pencil
+  Check, X, FolderPlus, Tag, ArrowRightLeft, Image as ImageIcon, Pencil,
+  Eye, Download, BookOpen
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { 
@@ -17,6 +18,8 @@ import {
   EmptyState,
   Modal 
 } from '@/components/custom/admin/AdminUI';
+import Latex from 'react-latex-next';
+import 'katex/dist/katex.min.css';
 
 interface Question {
   question_id: string;
@@ -72,6 +75,9 @@ export default function QuestionsManager() {
     module: '',
     question_type: 'DESCRIPTIVE'
   });
+
+  // Diagram preview modal
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const fetchQuestions = async () => {
     try {
@@ -149,7 +155,6 @@ export default function QuestionsManager() {
       });
       const data = await res.json();
       if (data.success) {
-        alert('Bulk action executed successfully!');
         setSelectedIds([]);
         setBulkActionType(null);
         setBulkActionValue('');
@@ -240,10 +245,11 @@ export default function QuestionsManager() {
   }).sort(sortQuestions);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fadeIn pb-16">
       <SectionHeader 
         title="Question Bank Directory" 
-        description="Search across subjects, course codes, modules, and topics. Apply advanced filters, manage individual question details, or use bulk actions."
+        description="Search across subjects, course codes, modules, and topics. Apply advanced filters, review LaTeX math equations, or execute bulk pipeline actions."
+        breadcrumbs={[{ label: 'Admin', href: '#' }, { label: 'Content', href: '#' }, { label: 'Questions', active: true }]}
       />
 
       {/* Filter and search bar */}
@@ -334,61 +340,70 @@ export default function QuestionsManager() {
         </div>
       </Card>
 
-      {/* Floating Bulk Actions Bar */}
+      {/* Floating Contextual Bulk Action Bar */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-foreground text-background px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl border border-border animate-slideUp">
-          <span className="text-xs font-semibold">{selectedIds.length} selected</span>
-          <div className="w-[1px] h-4 bg-background/20" />
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card/95 text-foreground backdrop-blur-2xl px-5 py-3 rounded-2xl flex items-center gap-3 shadow-[0_12px_40px_rgba(0,0,0,0.25)] border border-primary/30 animate-fadeIn">
+          <Badge variant="info" size="sm" className="font-bold">
+            {selectedIds.length} Selected
+          </Badge>
+          <div className="w-[1px] h-5 bg-border" />
           
-          <div className="flex gap-1 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <Button 
               size="sm"
-              variant="ghost"
+              variant="outline"
               onClick={() => executeBulkAction('publish')}
-              className="text-emerald-400 hover:text-emerald-300 h-8"
+              className="h-8 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
             >
               <CheckCircle className="w-3.5 h-3.5 mr-1" /> Publish
             </Button>
             
             <Button 
               size="sm"
-              variant="ghost"
+              variant="outline"
               onClick={() => setBulkActionType('module')}
-              className="text-primary hover:text-primary/80 h-8"
+              className="h-8 text-xs font-semibold"
             >
               <FolderPlus className="w-3.5 h-3.5 mr-1" /> Module
             </Button>
 
             <Button 
               size="sm"
-              variant="ghost"
+              variant="outline"
               onClick={() => setBulkActionType('topic')}
-              className="text-amber-400 hover:text-amber-300 h-8"
+              className="h-8 text-xs font-semibold"
             >
               <Tag className="w-3.5 h-3.5 mr-1" /> Topic
             </Button>
 
             <Button 
               size="sm"
-              variant="ghost"
+              variant="outline"
               onClick={() => setBulkActionType('subject')}
-              className="text-blue-400 hover:text-blue-300 h-8"
+              className="h-8 text-xs font-semibold"
             >
               <ArrowRightLeft className="w-3.5 h-3.5 mr-1" /> Move Subject
             </Button>
 
             <Button 
               size="sm"
-              variant="ghost"
+              variant="destructive"
               onClick={() => executeBulkAction('delete')}
-              className="text-destructive hover:text-destructive/80 h-8"
+              className="h-8 text-xs font-semibold"
             >
               <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
             </Button>
           </div>
-          <Button size="icon-sm" variant="ghost" onClick={() => setSelectedIds([])} className="h-7 w-7 text-background/60 hover:text-background">
+
+          <div className="w-[1px] h-5 bg-border" />
+
+          <button 
+            onClick={() => setSelectedIds([])} 
+            className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+            title="Deselect All"
+          >
             <X className="w-4 h-4" />
-          </Button>
+          </button>
         </div>
       )}
 
@@ -404,7 +419,7 @@ export default function QuestionsManager() {
             Apply this change to all {selectedIds.length} selected questions.
           </p>
           <Input 
-            placeholder={bulkActionType === 'subject' ? 'e.g. CSE1001' : `Enter ${bulkActionType} name`}
+            placeholder={bulkActionType === 'subject' ? 'e.g. MAT2001' : `Enter ${bulkActionType} name`}
             className="uppercase"
             value={bulkActionValue}
             onChange={(e: any) => setBulkActionValue(e.target.value)}
@@ -432,12 +447,37 @@ export default function QuestionsManager() {
         </div>
       </Modal>
 
+      {/* Diagram Preview Modal */}
+      <Modal
+        isOpen={Boolean(previewImageUrl)}
+        onClose={() => setPreviewImageUrl(null)}
+        title="Diagram Asset Preview"
+        maxWidth="max-w-2xl"
+      >
+        <div className="space-y-4 text-center">
+          {previewImageUrl && (
+            <div className="p-4 bg-muted/40 rounded-2xl border border-border/60 flex items-center justify-center max-h-[70vh] overflow-auto">
+              <img 
+                src={previewImageUrl} 
+                alt="Question Diagram" 
+                className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
+              />
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => setPreviewImageUrl(null)}>
+              Close
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Sorting Controls */}
-      <div className="flex justify-between items-center px-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
         <span className="text-xs font-semibold text-muted-foreground">
           Showing {filteredQuestions.length} of {questions.length} questions
         </span>
-        <div className="flex gap-2 items-center text-xs text-muted-foreground">
+        <div className="flex flex-wrap gap-2 items-center text-xs text-muted-foreground">
           <span className="font-medium mr-1">Sort by:</span>
           <Button 
             variant={sortBy === 'created' ? 'secondary' : 'ghost'}
@@ -466,7 +506,7 @@ export default function QuestionsManager() {
         </div>
       </div>
 
-      {/* Questions Table/Cards */}
+      {/* Questions List */}
       {loading ? (
         <div className="text-center py-20">
           <LoadingSpinner size="lg" />
@@ -482,7 +522,7 @@ export default function QuestionsManager() {
         </Card>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center gap-4 px-4 py-2 bg-muted/40 rounded-xl border border-border/50">
+          <div className="flex items-center gap-4 px-4 py-2.5 bg-muted/40 rounded-xl border border-border/50">
             <input 
               type="checkbox" 
               className="rounded border-border text-primary focus:ring-primary w-4 h-4 cursor-pointer"
@@ -542,7 +582,7 @@ export default function QuestionsManager() {
                         </div>
                         <div className="flex gap-2 pt-1">
                           <Button size="sm" variant="primary" onClick={() => handleSaveInline(q.question_id)}>
-                            <Check className="w-3.5 h-3.5 mr-1.5" /> Save
+                            <Check className="w-3.5 h-3.5 mr-1.5" /> Save Changes
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => setEditingQId(null)}>
                             <X className="w-3.5 h-3.5 mr-1.5" /> Cancel
@@ -552,7 +592,7 @@ export default function QuestionsManager() {
                     ) : (
                       <>
                         <div className="flex justify-between items-start gap-4">
-                          <div className="space-y-1.5">
+                          <div className="space-y-1.5 flex-1 min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <Badge variant="default" size="sm" className="font-bold uppercase">
                                 Q{q.question_number}
@@ -574,18 +614,18 @@ export default function QuestionsManager() {
                               </Badge>
                             </div>
                             
-                            <p className="text-foreground text-sm font-medium leading-relaxed pt-1">
-                              {q.question_text}
-                            </p>
+                            <div className="text-foreground text-sm font-medium leading-relaxed pt-1 overflow-x-auto">
+                              <Latex>{q.question_text || ''}</Latex>
+                            </div>
                           </div>
 
-                          <Button size="sm" variant="ghost" onClick={() => startEditing(q)} className="h-8">
+                          <Button size="sm" variant="ghost" onClick={() => startEditing(q)} className="h-8 shrink-0">
                             <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
                           </Button>
                         </div>
 
                         {(q.topic_name || q.metadata?.module || q.has_diagram || (q.image_urls && q.image_urls.length > 0)) && (
-                          <div className="pt-2 flex flex-wrap gap-x-4 gap-y-2 border-t border-border/50 text-xs text-muted-foreground">
+                          <div className="pt-2 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/50 text-xs text-muted-foreground">
                             {q.metadata?.module && (
                               <span>
                                 <strong className="text-muted-foreground font-semibold mr-1">Module:</strong> 
@@ -599,12 +639,16 @@ export default function QuestionsManager() {
                               </span>
                             )}
                             {(q.has_diagram || (q.image_urls && q.image_urls.length > 0)) && (
-                              <span className="inline-flex items-center gap-1.5 text-primary font-semibold">
-                                <ImageIcon className="w-3.5 h-3.5" /> Diagram Attached ({q.image_urls?.length || 1})
-                              </span>
+                              <button
+                                onClick={() => setPreviewImageUrl(q.image_urls?.[0] || null)}
+                                className="inline-flex items-center gap-1.5 text-primary font-semibold hover:underline cursor-pointer"
+                              >
+                                <ImageIcon className="w-3.5 h-3.5" /> 
+                                View Diagram ({q.image_urls?.length || 1})
+                              </button>
                             )}
                             {q.paper_title && (
-                              <span className="text-muted-foreground/80 italic">
+                              <span className="text-muted-foreground/80 italic ml-auto truncate max-w-xs">
                                 From: {q.paper_title} ({q.exam_semester} {q.exam_year})
                               </span>
                             )}

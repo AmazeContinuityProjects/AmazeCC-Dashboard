@@ -68,10 +68,11 @@ export default function AuditLogsManager() {
     return true;
   });
 
-  const getActionBadgeVariant = (action: string): 'success' | 'danger' | 'warning' | 'info' | 'default' => {
-    if (action.includes('Publish')) return 'success';
-    if (action.includes('Delete') || action.includes('Reject')) return 'danger';
-    if (action.includes('Edit') || action.includes('Update')) return 'warning';
+  const getActionBadgeVariant = (action: string): 'success' | 'danger' | 'warning' | 'info' | 'default' | 'purple' => {
+    if (action.includes('Login') || action.includes('Auth')) return 'purple';
+    if (action.includes('Publish') || action.includes('Add') || action.includes('Create')) return 'success';
+    if (action.includes('Delete') || action.includes('Reject') || action.includes('Remove')) return 'danger';
+    if (action.includes('Edit') || action.includes('Update') || action.includes('Modify')) return 'warning';
     if (action.includes('Upload') || action.includes('Import') || action.includes('Status')) return 'info';
     return 'default';
   };

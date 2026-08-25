@@ -6,6 +6,9 @@ allowBuilds:
   unrs-resolver: true
   workerd: true
 
+minimumReleaseAgeExclude:
+  - '@amazecontinuityprojects/amazeui@1.6.1'
+
 # Force patched versions of known-vulnerable transitive deps.
 overrides:
   nanoid: 3.3.18

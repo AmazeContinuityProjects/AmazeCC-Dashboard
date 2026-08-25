@@ -8,7 +8,8 @@ import { Input, Button } from "@/components/custom/admin/AdminUI";
 
 const AdminLayout = dynamic(() => import('@/components/custom/admin/AdminLayout'), { ssr: false });
 const AdminLandingPage = dynamic(() => import('@/components/custom/admin/AdminLandingPage'), { ssr: false });
-const AdminDashboard = dynamic(() => import('@/components/custom/dayscholar/AdminDashboard'), { ssr: false });
+const AdminQueueTab = dynamic(() => import('@/components/custom/qbank/AdminQueueTab'), { ssr: false });
+const PushBroadcastTab = dynamic(() => import('@/components/custom/admin/PushBroadcastTab'), { ssr: false });
 const AdminUsersTab = dynamic(() => import('@/components/custom/admin/AdminUsersTab'), { ssr: false });
 const PapersManager = dynamic(() => import('@/components/custom/admin/PapersManager'), { ssr: false });
 const QuestionsManager = dynamic(() => import('@/components/custom/admin/QuestionsManager'), { ssr: false });
@@ -190,8 +191,11 @@ export default function LoginPage() {
   {activeTab === 'dashboard' && (
   <AdminLandingPage setActiveTab={setActiveTab} setActiveSubTab={setActiveSubTab} />
   )}
-  {(activeTab === 'qbank' || activeTab === 'push') && (
-  <AdminDashboard activeTab={activeTab} activeSubTab={activeSubTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+  {activeTab === 'qbank' && (
+  <AdminQueueTab />
+  )}
+  {activeTab === 'push' && (
+  <PushBroadcastTab />
   )}
   {activeTab === 'buses' && (
   <TransportManager />
