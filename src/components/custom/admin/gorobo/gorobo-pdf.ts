@@ -370,7 +370,7 @@ export async function downloadThermalReceiptPdf(order: GoroboOrderJson, itemMap?
   doc.setTextColor(...MUTED);
   doc.text('Thank you for choosing GoRoBo!', THERMAL_W / 2, y, { align: 'center' });
   y += 10;
-  doc.text('For support or replacements: amaze@vit.ac.in', THERMAL_W / 2, y, { align: 'center' });
+  doc.text('For support: gorobo@amazecc.com', THERMAL_W / 2, y, { align: 'center' });
 
   doc.save(`gorobo-receipt-${order.id.slice(0, 8)}.pdf`);
 }
