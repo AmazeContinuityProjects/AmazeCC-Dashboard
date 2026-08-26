@@ -184,9 +184,9 @@ export const goroboApi = {
     );
   },
 
-  fetchItems(search?: string, category?: string, lowStock?: boolean) {
-    return handle<{ success: boolean; count: number; items: GoroboItemJson[] }>(
-      apiFetch(`/api/admin/gorobo/items${qs({ search, category, lowStock })}`)
+  fetchItems(search?: string, category?: string, lowStock?: boolean, limit?: number) {
+    return handle<{ success: boolean; count: number; totalCount?: number; hasMore?: boolean; items: GoroboItemJson[] }>(
+      apiFetch(`/api/admin/gorobo/items${qs({ search, category, lowStock, limit })}`)
     );
   },
 

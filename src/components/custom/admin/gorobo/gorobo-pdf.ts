@@ -8,6 +8,7 @@ const PORTRAIT_W = 595.28;  // A4 portrait width in points
 const PORTRAIT_H = 841.89;  // A4 portrait height in points
 const LANDSCAPE_W = 841.89;  // A4 landscape width in points
 const LANDSCAPE_H = 595.28;  // A4 landscape height in points
+const THERMAL_W = 226.77;    // 80mm thermal receipt width in points (80mm = ~226.77 pt)
 const MARGIN = 40;
 const PORTRAIT_CONTENT_W = PORTRAIT_W - MARGIN * 2;
 const LANDSCAPE_CONTENT_W = LANDSCAPE_W - MARGIN * 2;
@@ -33,6 +34,28 @@ interface PdfPageState {
   pageHeight: number;
 }
 
+let cachedLogoDataUrl: string | null = null;
+
+async function loadLogoDataUrl(): Promise<string | null> {
+  if (cachedLogoDataUrl) return cachedLogoDataUrl;
+  try {
+    const res = await fetch('/gorobo-logo.png');
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        cachedLogoDataUrl = reader.result as string;
+        resolve(cachedLogoDataUrl);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 function newPage(state: PdfPageState) {
   state.doc.addPage();
   state.page++;
@@ -52,24 +75,39 @@ function drawFooter(state: PdfPageState) {
   doc.text(`Page ${page}`, pageWidth - MARGIN, pageHeight - 30, { align: 'right' });
 }
 
-function drawHeader(state: PdfPageState, title: string, subtitle: string) {
+function drawHeader(state: PdfPageState, title: string, subtitle: string, logoDataUrl?: string | null) {
   const { doc, pageWidth, pageHeight } = state;
+  const headerHeight = 72;
   doc.setFillColor(...DARK);
-  doc.rect(0, 0, pageWidth, 64, 'F');
+  doc.rect(0, 0, pageWidth, headerHeight, 'F');
   doc.setFillColor(...ACCENT);
-  doc.rect(0, 64, pageWidth, 3, 'F');
+  doc.rect(0, headerHeight, pageWidth, 3, 'F');
+
+  let textStartX = MARGIN;
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, 'PNG', MARGIN, 12, 48, 48);
+      textStartX = MARGIN + 58;
+    } catch {
+      textStartX = MARGIN;
+    }
+  }
+
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text(title, MARGIN, 28);
+  doc.text(title, textStartX, 32);
+
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(220, 220, 225);
-  doc.text(subtitle, MARGIN, 44);
+  doc.text(subtitle, textStartX, 49);
+
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8);
-  doc.text(new Date().toLocaleString("en-IN"), pageWidth - MARGIN, 28, { align: 'right' });
-  state.y = 88;
+  doc.text(new Date().toLocaleString("en-IN"), pageWidth - MARGIN, 32, { align: 'right' });
+
+  state.y = 96;
   drawFooter(state);
 }
 
@@ -139,11 +177,12 @@ function drawSummary(state: PdfPageState, rows: { label: string; value: string; 
   });
 }
 
-export function downloadBomPdf(order: GoroboOrderJson, itemMap?: Map<string, string>) {
+export async function downloadBomPdf(order: GoroboOrderJson, itemMap?: Map<string, string>) {
   const doc = new jsPDF({ unit: 'pt', format: [PORTRAIT_W, PORTRAIT_H] });
-  const state: PdfPageState = { doc, y: 88, footerLabel: 'bill processor', page: 1, pageWidth: PORTRAIT_W, pageHeight: PORTRAIT_H };
+  const logoDataUrl = await loadLogoDataUrl();
+  const state: PdfPageState = { doc, y: 96, footerLabel: 'bill processor', page: 1, pageWidth: PORTRAIT_W, pageHeight: PORTRAIT_H };
 
-  drawHeader(state, 'GoRoBo - Bill of Materials / Final Quote', `Order ${order.id.slice(0, 8)} | ${order.status.toUpperCase()}`);
+  drawHeader(state, 'GoRoBo - Bill of Materials / Final Quote', `Order #${order.id.slice(0, 8).toUpperCase()} | ${order.status.toUpperCase()}`, logoDataUrl);
 
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
@@ -151,6 +190,9 @@ export function downloadBomPdf(order: GoroboOrderJson, itemMap?: Map<string, str
   doc.text(`Phone: ${order.phoneNumber}`, MARGIN + 220, state.y);
   state.y += 16;
   doc.text(`Order placed: ${new Date(order.createdAt).toLocaleString("en-IN")}`, MARGIN, state.y);
+  if (order.deliveryMode) {
+    doc.text(`Delivery: ${order.deliveryMode.replace(/_/g, ' ').toUpperCase()}`, MARGIN + 220, state.y);
+  }
   state.y += 24;
 
   const cols: Col[] = [
@@ -205,12 +247,132 @@ export function downloadBomPdf(order: GoroboOrderJson, itemMap?: Map<string, str
     ensureSpace(state, 40);
     doc.setFontSize(9);
     doc.setTextColor(...MUTED);
-    doc.text('Notes:', MARGIN, state.y);
+    doc.text('Notes / Instructions:', MARGIN, state.y);
     doc.setTextColor(...DARK);
     doc.text(order.notes, MARGIN, state.y + 14, { maxWidth: PORTRAIT_CONTENT_W });
   }
 
   doc.save(`gorobo-bom-${order.id.slice(0, 8)}.pdf`);
+}
+
+/**
+ * Generates and prints an 80mm POS Thermal Receipt for counter sales and quick slips.
+ */
+export async function downloadThermalReceiptPdf(order: GoroboOrderJson, itemMap?: Map<string, string>) {
+  const logoDataUrl = await loadLogoDataUrl();
+  const estimatedHeight = Math.max(380, 200 + (order.items.length * 20));
+  const doc = new jsPDF({ unit: 'pt', format: [THERMAL_W, estimatedHeight] });
+
+  const tMargin = 12;
+  let y = 18;
+
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, 'PNG', (THERMAL_W / 2) - 18, y, 36, 36);
+      y += 42;
+    } catch {}
+  }
+
+  // Header
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(...DARK);
+  doc.text('GOROBO ELECTRONICS', THERMAL_W / 2, y, { align: 'center' });
+  y += 12;
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...MUTED);
+  doc.text('Campus Hardware & Maker Hub', THERMAL_W / 2, y, { align: 'center' });
+  y += 10;
+  doc.text('GSTIN: 33AAAAA0000A1Z5', THERMAL_W / 2, y, { align: 'center' });
+  y += 12;
+
+  // Dashed separator
+  doc.setLineDashPattern([2, 2], 0);
+  doc.line(tMargin, y, THERMAL_W - tMargin, y);
+  doc.setLineDashPattern([], 0);
+  y += 12;
+
+  // Order Details
+  doc.setFontSize(8);
+  doc.setTextColor(...DARK);
+  doc.text(`Order: #${order.id.slice(0, 8).toUpperCase()}`, tMargin, y);
+  doc.text(new Date(order.createdAt).toLocaleDateString('en-IN'), THERMAL_W - tMargin, y, { align: 'right' });
+  y += 11;
+  doc.text(`Customer: ${order.userName}`, tMargin, y);
+  y += 11;
+  doc.text(`Phone: ${order.phoneNumber}`, tMargin, y);
+  doc.text(`Status: ${order.status.toUpperCase()}`, THERMAL_W - tMargin, y, { align: 'right' });
+  y += 14;
+
+  // Items Table
+  doc.line(tMargin, y, THERMAL_W - tMargin, y);
+  y += 10;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text('ITEM', tMargin, y);
+  doc.text('QTY', THERMAL_W - tMargin - 48, y, { align: 'right' });
+  doc.text('AMT (Rs.)', THERMAL_W - tMargin, y, { align: 'right' });
+  y += 8;
+  doc.line(tMargin, y, THERMAL_W - tMargin, y);
+  y += 10;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+
+  order.items.forEach((line) => {
+    let name = line.name || (line.itemId && itemMap?.get(line.itemId)) || line.itemId || 'Item';
+    if (name.length > 20) name = name.slice(0, 18) + '..';
+
+    const lineAmt = (Number(line.unitPrice) * Number(line.quantity)).toFixed(2);
+    doc.text(name, tMargin, y);
+    doc.text(String(line.quantity), THERMAL_W - tMargin - 48, y, { align: 'right' });
+    doc.text(lineAmt, THERMAL_W - tMargin, y, { align: 'right' });
+    y += 11;
+  });
+
+  y += 4;
+  doc.line(tMargin, y, THERMAL_W - tMargin, y);
+  y += 12;
+
+  // Totals
+  doc.setFontSize(8);
+  doc.text('Subtotal:', tMargin + 40, y);
+  doc.text(`Rs. ${order.subtotal.toFixed(2)}`, THERMAL_W - tMargin, y, { align: 'right' });
+  y += 11;
+
+  if (Number(order.discountAmount) > 0) {
+    doc.text(`Discount (${order.discountPct}%):`, tMargin + 40, y);
+    doc.text(`- Rs. ${order.discountAmount.toFixed(2)}`, THERMAL_W - tMargin, y, { align: 'right' });
+    y += 11;
+  }
+
+  doc.text(`GST (${order.gstPct}%):`, tMargin + 40, y);
+  doc.text(`+ Rs. ${order.gstAmount.toFixed(2)}`, THERMAL_W - tMargin, y, { align: 'right' });
+  y += 11;
+
+  if (Number(order.shipmentCost) > 0) {
+    doc.text('Shipping:', tMargin + 40, y);
+    doc.text(`+ Rs. ${order.shipmentCost.toFixed(2)}`, THERMAL_W - tMargin, y, { align: 'right' });
+    y += 11;
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('TOTAL:', tMargin + 40, y);
+  doc.text(`Rs. ${order.total.toFixed(2)}`, THERMAL_W - tMargin, y, { align: 'right' });
+  y += 16;
+
+  // Footer
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...MUTED);
+  doc.text('Thank you for choosing GoRoBo!', THERMAL_W / 2, y, { align: 'center' });
+  y += 10;
+  doc.text('For support or replacements: amaze@vit.ac.in', THERMAL_W / 2, y, { align: 'center' });
+
+  doc.save(`gorobo-receipt-${order.id.slice(0, 8)}.pdf`);
 }
 
 export function downloadWalletPdf(summary: WalletSummary, transactions: WalletTransaction[]) {

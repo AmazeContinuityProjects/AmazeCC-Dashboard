@@ -375,8 +375,6 @@ export default function GoRoboBundles({ onUseBundleInOrder }: GoRoboBundlesProps
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
           title={editId ? "Edit Project Kit" : "Create New Project Kit"}
-          description="Bundle multiple electronic components into a single pre-priced starter kit or student BOM."
-          size="lg"
         >
           <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

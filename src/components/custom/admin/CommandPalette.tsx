@@ -165,27 +165,41 @@ export default function CommandPalette({
         <CommandSeparator className="my-1 border-border/40" />
 
         {/* GoRoBo Commerce */}
-        <CommandGroup heading="GoRoBo Store" className="text-xs font-bold text-muted-foreground uppercase px-2 py-1.5">
+        <CommandGroup heading="GoRoBo Electronics Store" className="text-xs font-bold text-muted-foreground uppercase px-2 py-1.5">
+          <CommandItem
+            onSelect={() => handleSelect(() => setActiveTab('gorobo-analytics'))}
+            className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-xl cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors aria-selected:bg-primary/15 aria-selected:text-primary"
+          >
+            <BarChart3 className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium flex-1">Store Overview & Metrics</span>
+          </CommandItem>
           <CommandItem
             onSelect={() => handleSelect(() => setActiveTab('gorobo-inventory'))}
             className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-xl cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors aria-selected:bg-primary/15 aria-selected:text-primary"
           >
             <Boxes className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium flex-1">Inventory Management</span>
+            <span className="font-medium flex-1">Inventory & Stock Manager</span>
           </CommandItem>
           <CommandItem
             onSelect={() => handleSelect(() => setActiveTab('gorobo-orders'))}
             className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-xl cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors aria-selected:bg-primary/15 aria-selected:text-primary"
           >
             <Receipt className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium flex-1">Orders & Bill Processor</span>
+            <span className="font-medium flex-1">Orders & POS BOM Quoter</span>
+          </CommandItem>
+          <CommandItem
+            onSelect={() => handleSelect(() => setActiveTab('gorobo-bundles'))}
+            className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-xl cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors aria-selected:bg-primary/15 aria-selected:text-primary"
+          >
+            <Sparkles className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium flex-1">Project Kits & Bundles</span>
           </CommandItem>
           <CommandItem
             onSelect={() => handleSelect(() => setActiveTab('gorobo-wallet'))}
             className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-xl cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors aria-selected:bg-primary/15 aria-selected:text-primary"
           >
             <Wallet className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium flex-1">Amaze Wallet</span>
+            <span className="font-medium flex-1">Amaze Wallet Ledger</span>
           </CommandItem>
         </CommandGroup>
 

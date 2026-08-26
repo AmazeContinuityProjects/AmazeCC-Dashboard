@@ -35,10 +35,12 @@ const navGroups = [
     ]
   },
   {
-    label: 'GoRoBo',
+    label: 'GoRoBo Store',
     items: [
-      { id: 'gorobo-inventory', label: 'Inventory', icon: Boxes, requiredPermission: 'gorobo' },
-      { id: 'gorobo-orders', label: 'Orders', icon: Receipt, requiredPermission: 'gorobo' },
+      { id: 'gorobo-analytics', label: 'Store Overview', icon: BarChart3, requiredPermission: 'gorobo' },
+      { id: 'gorobo-inventory', label: 'Inventory & Stock', icon: Boxes, requiredPermission: 'gorobo' },
+      { id: 'gorobo-orders', label: 'Orders & Quoter', icon: Receipt, requiredPermission: 'gorobo' },
+      { id: 'gorobo-bundles', label: 'Project Kits', icon: Sparkles, requiredPermission: 'gorobo' },
       { id: 'gorobo-wallet', label: 'Amaze Wallet', icon: Wallet, requiredPermission: 'gorobo' },
     ]
   },
