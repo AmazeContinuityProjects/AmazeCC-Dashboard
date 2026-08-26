@@ -1,37 +1,24 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Boxes,
   Plus,
   Trash2,
   Edit2,
-  PackageCheck,
-  ShoppingBag,
   Sparkles,
   Search,
-  CheckCircle,
-  AlertCircle,
-  Tag,
   Layers,
   ArrowRight
 } from 'lucide-react';
 import {
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
   Button,
   Input,
   Textarea,
-  Select,
   Badge,
   Modal,
   LoadingSpinner,
   EmptyState,
-  Alert,
-  SectionHeader
+  Alert
 } from '@/components/custom/admin/AdminUI';
 import {
   goroboApi,

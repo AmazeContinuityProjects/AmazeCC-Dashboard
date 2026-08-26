@@ -2,15 +2,11 @@
 import React, { useState } from 'react';
 import { 
   Send, 
-  ShieldCheck, 
   Smartphone, 
   Bell, 
-  Sparkles, 
   AlertTriangle, 
   CheckCircle, 
   Radio, 
-  Clock, 
-  Users, 
   Info 
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';

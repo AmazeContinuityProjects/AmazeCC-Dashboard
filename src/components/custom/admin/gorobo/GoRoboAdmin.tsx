@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import {
-  Boxes, Receipt, Sparkles, Wallet, BarChart3, ShoppingBag
+  Boxes, Receipt, Sparkles, Wallet, BarChart3
 } from 'lucide-react';
 import { SectionHeader, Button } from '@/components/custom/admin/AdminUI';
 import GoRoboAnalytics from './GoRoboAnalytics';

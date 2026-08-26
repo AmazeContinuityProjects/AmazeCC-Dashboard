@@ -1,7 +1,6 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { 
-  Command, 
   CommandDialog, 
   CommandInput, 
   CommandList, 
@@ -27,11 +26,10 @@ import {
   GraduationCap, 
   Building2, 
   History, 
-  Plus, 
   Upload, 
   SunMoon, 
-  LogOut,
-  Sparkles
+  LogOut, 
+  Sparkles 
 } from 'lucide-react';
 import { useTheme } from '@amazecontinuityprojects/amazeui';
 

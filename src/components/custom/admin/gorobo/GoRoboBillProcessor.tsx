@@ -93,10 +93,10 @@ export default function GoRoboBillProcessor() {
   const [posCustomerPhone, setPosCustomerPhone] = useState('');
   const [posDeliveryMode, setPosDeliveryMode] = useState('counter_pickup');
   const [posLines, setPosLines] = useState<GoroboLine[]>([]);
-  const [posDiscountPct, setPosDiscountPct] = useState('0');
-  const [posGstPct, setPosGstPct] = useState('18');
-  const [posShipmentCost, setPosShipmentCost] = useState('0');
-  const [posNotes, setPosNotes] = useState('');
+  const [posDiscountPct] = useState('0');
+  const [posGstPct] = useState('18');
+  const [posShipmentCost] = useState('0');
+  const [posNotes] = useState('');
   const [posSearchItem, setPosSearchItem] = useState('');
   const [creatingPos, setCreatingPos] = useState(false);
 
