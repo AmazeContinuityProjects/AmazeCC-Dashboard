@@ -234,9 +234,28 @@ export async function downloadBomPdf(order: GoroboOrderJson, itemMap?: Map<strin
     });
   }
 
+  // Additional Charges (formerly overall margin) - shown as "Charges"
+  const chargesAmt = Number((order as any).overallMarginAmount ?? order.overallMargin ?? 0) || 
+    (order.overallMarginType === 'percent' && order.overallMarginValue ? Math.round(((order.subtotal - (order.discountAmount || 0)) * (order.overallMarginValue || 0) / 100) * 100) / 100 : (order.overallMarginType === 'flat' ? Number(order.overallMarginValue) || 0 : 0));
+  const isGstEnabled = order.gstEnabled ?? (Number(order.gstAmount) > 0 || Number(order.gstPct) > 0 ? true : false);
+
+  if (chargesAmt > 0) {
+    const chargesLabel = order.overallMarginType === 'percent' && order.overallMarginValue
+      ? `Charges (${order.overallMarginValue}%)`
+      : 'Charges';
+    summaryItems.push({
+      label: chargesLabel,
+      value: `+ ${rs(chargesAmt)}`,
+    });
+  }
+
   summaryItems.push(
     { label: 'Taxable', value: rs(order.taxable) },
-    { label: `GST (${order.gstPct}%)`, value: `+ ${rs(order.gstAmount)}` },
+  );
+  if (isGstEnabled) {
+    summaryItems.push({ label: `GST (${order.gstPct}%)`, value: `+ ${rs(order.gstAmount)}` });
+  }
+  summaryItems.push(
     { label: 'Shipment', value: `+ ${rs(order.shipmentCost)}` },
     { label: 'Grand Total', value: rs(order.total), bold: true, big: true }
   );
@@ -348,9 +367,22 @@ export async function downloadThermalReceiptPdf(order: GoroboOrderJson, itemMap?
     y += 11;
   }
 
-  doc.text(`GST (${order.gstPct}%):`, tMargin + 40, y);
-  doc.text(`+ Rs. ${order.gstAmount.toFixed(2)}`, THERMAL_W - tMargin, y, { align: 'right' });
-  y += 11;
+  const chargesAmtT = Number((order as any).overallMarginAmount ?? order.overallMargin ?? 0) ||
+    (order.overallMarginType === 'percent' && order.overallMarginValue ? Math.round(((order.subtotal - (order.discountAmount || 0)) * (order.overallMarginValue || 0) / 100) * 100) / 100 : (order.overallMarginType === 'flat' ? Number(order.overallMarginValue) || 0 : 0));
+  const isGstEnabledT = order.gstEnabled ?? (Number(order.gstAmount) > 0 || Number(order.gstPct) > 0 ? true : false);
+
+  if (chargesAmtT > 0) {
+    const chargesLabelT = order.overallMarginType === 'percent' && order.overallMarginValue ? `Charges (${order.overallMarginValue}%):` : 'Charges:';
+    doc.text(chargesLabelT, tMargin + 40, y);
+    doc.text(`+ Rs. ${chargesAmtT.toFixed(2)}`, THERMAL_W - tMargin, y, { align: 'right' });
+    y += 11;
+  }
+
+  if (isGstEnabledT) {
+    doc.text(`GST (${order.gstPct}%):`, tMargin + 40, y);
+    doc.text(`+ Rs. ${order.gstAmount.toFixed(2)}`, THERMAL_W - tMargin, y, { align: 'right' });
+    y += 11;
+  }
 
   if (Number(order.shipmentCost) > 0) {
     doc.text('Shipping:', tMargin + 40, y);

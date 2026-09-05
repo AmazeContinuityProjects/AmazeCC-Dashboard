@@ -12,6 +12,7 @@ import {
   Input,
   Textarea,
   Select,
+  Switch,
   Card,
   CardHeader,
   CardTitle,
@@ -65,8 +66,11 @@ export default function GoRoboBillProcessor() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [lines, setLines] = useState<GoroboLine[]>([]);
   const [discountPct, setDiscountPct] = useState('0');
+  const [gstEnabled, setGstEnabled] = useState(false);
   const [gstPct, setGstPct] = useState('18');
   const [shipmentCost, setShipmentCost] = useState('0');
+  const [overallMarginType, setOverallMarginType] = useState<'flat' | 'percent'>('flat');
+  const [overallMarginValue, setOverallMarginValue] = useState('0');
   const [notes, setNotes] = useState('');
   const [deliveryMode, setDeliveryMode] = useState('normal');
   const [busy, setBusy] = useState(false);
@@ -93,9 +97,12 @@ export default function GoRoboBillProcessor() {
   const [posCustomerPhone, setPosCustomerPhone] = useState('');
   const [posDeliveryMode, setPosDeliveryMode] = useState('counter_pickup');
   const [posLines, setPosLines] = useState<GoroboLine[]>([]);
-  const [posDiscountPct] = useState('0');
-  const [posGstPct] = useState('18');
-  const [posShipmentCost] = useState('0');
+  const [posDiscountPct, setPosDiscountPct] = useState('0');
+  const [posGstEnabled, setPosGstEnabled] = useState(false);
+  const [posGstPct, setPosGstPct] = useState('18');
+  const [posShipmentCost, setPosShipmentCost] = useState('0');
+  const [posOverallMarginType, setPosOverallMarginType] = useState<'flat' | 'percent'>('flat');
+  const [posOverallMarginValue, setPosOverallMarginValue] = useState('0');
   const [posNotes] = useState('');
   const [posSearchItem, setPosSearchItem] = useState('');
   const [creatingPos, setCreatingPos] = useState(false);
@@ -118,6 +125,30 @@ export default function GoRoboBillProcessor() {
   useEffect(() => {
     loadCatalog();
   }, [loadCatalog]);
+
+  const getDisplayName = useCallback((line: GoroboLine) => {
+    if (line.name && line.name.trim() && line.name !== line.itemId) return line.name;
+    if (line.itemId && itemMap.has(line.itemId)) return itemMap.get(line.itemId)!;
+    return line.name || line.itemId || 'Component';
+  }, [itemMap]);
+
+  // Keep lines in sync if catalog loads after order is opened (resolves ids -> names)
+  useEffect(() => {
+    if (!detail || itemMap.size === 0 || lines.length === 0) return;
+    let needsUpdate = false;
+    const updated = lines.map(l => {
+      const resolved = getDisplayName(l);
+      if (resolved !== l.name) {
+        needsUpdate = true;
+        return { ...l, name: resolved };
+      }
+      return l;
+    });
+    if (needsUpdate) {
+      setLines(updated);
+      setDetail(prev => (prev ? { ...prev, items: updated } : prev));
+    }
+  }, [itemMap, detail, lines, getDisplayName]);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -145,9 +176,7 @@ export default function GoRoboBillProcessor() {
     try {
       const data = await goroboApi.fetchOrder(id);
       const resolvedLines: GoroboLine[] = (data.order.items || []).map(l => {
-        const resolvedName = (l.name && l.name.trim() && l.name !== l.itemId)
-          ? l.name
-          : (l.itemId && itemMap.get(l.itemId)) || l.name || l.itemId || 'Product Component';
+        const resolvedName = getDisplayName(l) || 'Product Component';
         return {
           ...l,
           name: resolvedName,
@@ -162,8 +191,23 @@ export default function GoRoboBillProcessor() {
       setDetail(resolvedOrder);
       setLines(resolvedLines);
       setDiscountPct(String(data.order.discountPct ?? 0));
+      // GST disabled by default for new-style orders; fallback to gstPct>0 for legacy orders
+      const hasGstFlag = typeof data.order.gstEnabled === 'boolean';
+      setGstEnabled(hasGstFlag ? !!data.order.gstEnabled : (Number(data.order.gstPct) || 0) > 0 ? true : false);
       setGstPct(String(data.order.gstPct ?? 18));
       setShipmentCost(String(data.order.shipmentCost ?? 0));
+      // Overall margin: support both new typed fields and legacy flat field
+      const legacyMargin = (data.order as any).overallMargin ?? data.order.overallMarginAmount ?? 0;
+      if (data.order.overallMarginType) {
+        setOverallMarginType(data.order.overallMarginType as 'flat' | 'percent');
+        setOverallMarginValue(String(data.order.overallMarginValue ?? legacyMargin ?? 0));
+      } else if (legacyMargin && Number(legacyMargin) > 0) {
+        setOverallMarginType('flat');
+        setOverallMarginValue(String(legacyMargin));
+      } else {
+        setOverallMarginType('flat');
+        setOverallMarginValue('0');
+      }
       setNotes(data.order.notes || '');
       setDeliveryMode(data.order.deliveryMode || 'normal');
     } catch (err: any) {
@@ -189,11 +233,22 @@ export default function GoRoboBillProcessor() {
     return Math.round(((subtotal * (Number(discountPct) || 0)) / 100) * 100) / 100;
   }, [subtotal, discountPct]);
 
-  const taxable = useMemo(() => Math.round((subtotal - discountAmount) * 100) / 100, [subtotal, discountAmount]);
+  const overallMarginAmount = useMemo(() => {
+    const raw = Number(overallMarginValue) || 0;
+    if (raw <= 0) return 0;
+    if (overallMarginType === 'percent') {
+      const base = Math.max(0, subtotal - discountAmount);
+      return Math.round((base * raw) / 100 * 100) / 100;
+    }
+    return Math.round(raw * 100) / 100;
+  }, [overallMarginType, overallMarginValue, subtotal, discountAmount]);
+
+  const taxable = useMemo(() => Math.round((subtotal - discountAmount + overallMarginAmount) * 100) / 100, [subtotal, discountAmount, overallMarginAmount]);
 
   const gstAmount = useMemo(() => {
+    if (!gstEnabled) return 0;
     return Math.round(((taxable * (Number(gstPct) || 0)) / 100) * 100) / 100;
-  }, [taxable, gstPct]);
+  }, [taxable, gstPct, gstEnabled]);
 
   const grandTotal = useMemo(() => {
     return Math.round((taxable + gstAmount + (Number(shipmentCost) || 0)) * 100) / 100;
@@ -315,8 +370,11 @@ export default function GoRoboBillProcessor() {
       const res = await goroboApi.saveQuote(detailId, {
         items: lines,
         discountPct: Number(discountPct) || 0,
-        gstPct: Number(gstPct) || 18,
+        gstPct: gstEnabled ? (Number(gstPct) || 18) : 0,
+        gstEnabled,
         shipmentCost: Number(shipmentCost) || 0,
+        overallMarginType,
+        overallMarginValue: Number(overallMarginValue) || 0,
         notes,
       });
       setDetail(res.order);
@@ -350,8 +408,10 @@ export default function GoRoboBillProcessor() {
     if (!detail) return;
     const cleanPhone = detail.phoneNumber.replace(/[^0-9]/g, '');
     const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    const itemsList = lines.map(l => `• ${l.name || l.itemId} (x${l.quantity}) - ₹${(l.unitPrice * l.quantity).toFixed(2)}`).join('%0A');
-    const text = `Hi ${encodeURIComponent(detail.userName)}! 👋%0A%0AYour GoRoBo Electronics quote for Order *#${detail.id.slice(0, 8).toUpperCase()}* is ready:%0A%0A${itemsList}%0A%0A*Subtotal:* ₹${subtotal.toFixed(2)}%0A*GST (${gstPct}%):* ₹${gstAmount.toFixed(2)}%0A*Total Amount:* ₹${grandTotal.toFixed(2)}%0A%0APlease confirm your order to proceed with packaging! 🚀`;
+    const itemsList = lines.map(l => `• ${getDisplayName(l)} (x${l.quantity}) - ₹${(l.unitPrice * l.quantity).toFixed(2)}`).join('%0A');
+    const chargesLine = overallMarginAmount > 0 ? `%0A*Charges${overallMarginType === 'percent' ? ` (${overallMarginValue}%)` : ''}:* ₹${overallMarginAmount.toFixed(2)}` : '';
+    const gstLine = gstEnabled ? `%0A*GST (${gstPct}%):* ₹${gstAmount.toFixed(2)}` : '%0A*GST:* Disabled';
+    const text = `Hi ${encodeURIComponent(detail.userName)}! 👋%0A%0AYour GoRoBo Electronics quote for Order *#${detail.id.slice(0, 8).toUpperCase()}* is ready:%0A%0A${itemsList}%0A%0A*Subtotal:* ₹${subtotal.toFixed(2)}${chargesLine}${gstLine}%0A*Total Amount:* ₹${grandTotal.toFixed(2)}%0A%0APlease confirm your order to proceed with packaging! 🚀`;
     window.open(`https://wa.me/${phoneWithCountry}?text=${text}`, '_blank');
   };
 
@@ -382,10 +442,20 @@ export default function GoRoboBillProcessor() {
   const posDiscountAmount = useMemo(() => {
     return Math.round(((posSubtotal * (Number(posDiscountPct) || 0)) / 100) * 100) / 100;
   }, [posSubtotal, posDiscountPct]);
-  const posTaxable = useMemo(() => Math.round((posSubtotal - posDiscountAmount) * 100) / 100, [posSubtotal, posDiscountAmount]);
+  const posOverallMarginAmount = useMemo(() => {
+    const raw = Number(posOverallMarginValue) || 0;
+    if (raw <= 0) return 0;
+    if (posOverallMarginType === 'percent') {
+      const base = Math.max(0, posSubtotal - posDiscountAmount);
+      return Math.round((base * raw) / 100 * 100) / 100;
+    }
+    return Math.round(raw * 100) / 100;
+  }, [posOverallMarginType, posOverallMarginValue, posSubtotal, posDiscountAmount]);
+  const posTaxable = useMemo(() => Math.round((posSubtotal - posDiscountAmount + posOverallMarginAmount) * 100) / 100, [posSubtotal, posDiscountAmount, posOverallMarginAmount]);
   const posGstAmount = useMemo(() => {
+    if (!posGstEnabled) return 0;
     return Math.round(((posTaxable * (Number(posGstPct) || 0)) / 100) * 100) / 100;
-  }, [posTaxable, posGstPct]);
+  }, [posTaxable, posGstPct, posGstEnabled]);
   const posTotal = useMemo(() => {
     return Math.round((posTaxable + posGstAmount + (Number(posShipmentCost) || 0)) * 100) / 100;
   }, [posTaxable, posGstAmount, posShipmentCost]);
@@ -428,8 +498,11 @@ export default function GoRoboBillProcessor() {
         phoneNumber: posCustomerPhone.trim(),
         items: posLines,
         discountPct: Number(posDiscountPct) || 0,
-        gstPct: Number(posGstPct) || 18,
+        gstPct: posGstEnabled ? (Number(posGstPct) || 18) : 0,
+        gstEnabled: posGstEnabled,
         shipmentCost: Number(posShipmentCost) || 0,
+        overallMarginType: posOverallMarginType,
+        overallMarginValue: Number(posOverallMarginValue) || 0,
         notes: posNotes.trim(),
         deliveryMode: posDeliveryMode,
         status: statusToSet,
@@ -695,8 +768,8 @@ export default function GoRoboBillProcessor() {
                         lines.map((line, idx) => (
                           <TableRow key={idx} className="border-b border-border/20 hover:bg-muted/15 transition-colors">
                             <TableCell className="py-3 px-4">
-                              <p className="font-bold text-xs text-foreground truncate max-w-sm">
-                                {line.name || line.itemId}
+                              <p className="font-bold text-xs text-foreground truncate max-w-sm" title={getDisplayName(line)}>
+                                {getDisplayName(line)}
                               </p>
                               {line.custom && (
                                 <Badge variant="default" size="sm" className="text-[10px] mt-0.5">
@@ -772,6 +845,64 @@ export default function GoRoboBillProcessor() {
                       onChange={(e: any) => setDiscountPct(e.target.value)}
                     />
                   </div>
+
+                  {/* GST Toggle & Rate */}
+                  <div className="p-3 rounded-xl border border-border/50 bg-muted/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                          GST Processing
+                        </label>
+                        <p className="text-[10px] text-muted-foreground">Disable for GST-exempt orders</p>
+                      </div>
+                      <Switch checked={gstEnabled} onCheckedChange={setGstEnabled} />
+                    </div>
+                    {gstEnabled && (
+                      <div>
+                        <label className="text-xs font-bold text-foreground">GST Rate %</label>
+                        <Select
+                          value={gstPct}
+                          onChange={(e: any) => setGstPct(e.target.value)}
+                          options={[
+                            { value: '0', label: '0% - Exempt' },
+                            { value: '5', label: '5% - Essential' },
+                            { value: '12', label: '12%' },
+                            { value: '18', label: '18% - Standard' },
+                            { value: '28', label: '28% - Luxury' },
+                          ]}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Overall Margin / Charges - Flat or Percent */}
+                  <div className="p-3 rounded-xl border border-border/50 bg-muted/10 space-y-2">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-amber-500" />
+                      Additional Charges
+                    </label>
+                    <p className="text-[10px] text-muted-foreground">Added to taxable amount before GST (shows as “Charges” on bill)</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select
+                        value={overallMarginType}
+                        onChange={(e: any) => setOverallMarginType(e.target.value)}
+                        options={[
+                          { value: 'flat', label: 'Flat (₹)' },
+                          { value: 'percent', label: 'Percent (%)' },
+                        ]}
+                      />
+                      <Input
+                        type="number"
+                        min="0"
+                        className="font-mono text-xs"
+                        placeholder={overallMarginType === 'percent' ? 'e.g. 5' : 'e.g. 150'}
+                        value={overallMarginValue}
+                        onChange={(e: any) => setOverallMarginValue(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="text-xs font-bold text-foreground">Delivery / Packaging Fee (₹)</label>
                     <Input
@@ -806,14 +937,27 @@ export default function GoRoboBillProcessor() {
                       <span>- {formatINR(discountAmount)}</span>
                     </div>
                   )}
+                  {overallMarginAmount > 0 && (
+                    <div className="flex justify-between text-amber-600 dark:text-amber-400">
+                      <span>Charges {overallMarginType === 'percent' ? `(${overallMarginValue}%)` : ''}:</span>
+                      <span>+ {formatINR(overallMarginAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-muted-foreground">
                     <span>Taxable Amount:</span>
                     <span>{formatINR(taxable)}</span>
                   </div>
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>GST ({gstPct}%):</span>
-                    <span>+ {formatINR(gstAmount)}</span>
-                  </div>
+                  {gstEnabled ? (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>GST ({gstPct}%):</span>
+                      <span>+ {formatINR(gstAmount)}</span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between text-muted-foreground/60 italic">
+                      <span>GST:</span>
+                      <span>Disabled</span>
+                    </div>
+                  )}
                   {Number(shipmentCost) > 0 && (
                     <div className="flex justify-between text-muted-foreground">
                       <span>Shipping Fee:</span>
@@ -1063,6 +1207,10 @@ export default function GoRoboBillProcessor() {
               setPosLines([]);
               setPosCustomerName('');
               setPosCustomerPhone('');
+              setPosGstEnabled(false);
+              setPosGstPct('18');
+              setPosOverallMarginType('flat');
+              setPosOverallMarginValue('0');
               setCreateModalOpen(true);
             }}
             className="flex items-center gap-1.5 shadow-sm text-xs"
@@ -1263,7 +1411,7 @@ export default function GoRoboBillProcessor() {
                 ) : (
                   posLines.map((line, idx) => (
                     <div key={idx} className="flex items-center justify-between gap-2 p-1.5 bg-card rounded-lg border border-border/40 text-xs">
-                      <span className="font-medium text-foreground truncate flex-1">{line.name || line.itemId}</span>
+                      <span className="font-medium text-foreground truncate flex-1" title={getDisplayName(line)}>{getDisplayName(line)}</span>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-muted-foreground">{formatINR(line.unitPrice)} ea</span>
                         <div className="flex items-center gap-1">
@@ -1294,10 +1442,85 @@ export default function GoRoboBillProcessor() {
               </div>
             </div>
 
-            {/* Calculations */}
-            <div className="p-3 rounded-xl bg-muted/10 border border-border/50 flex justify-between items-center text-xs font-mono">
-              <span className="text-muted-foreground">Order Total (with 18% GST):</span>
-              <span className="text-base font-black text-primary">{formatINR(posTotal)}</span>
+            {/* POS Quote Adjustments */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-border/50 pt-3">
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-primary" /> GST
+                  </label>
+                  <Switch checked={posGstEnabled} onCheckedChange={setPosGstEnabled} />
+                </div>
+                {posGstEnabled && (
+                  <Select
+                    value={posGstPct}
+                    onChange={(e: any) => setPosGstPct(e.target.value)}
+                    options={[
+                      { value: '0', label: '0% - Exempt' },
+                      { value: '5', label: '5%' },
+                      { value: '12', label: '12%' },
+                      { value: '18', label: '18% - Standard' },
+                      { value: '28', label: '28%' },
+                    ]}
+                  />
+                )}
+              </div>
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/10 space-y-2">
+                <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-amber-500" /> Additional Charges
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Select
+                    value={posOverallMarginType}
+                    onChange={(e: any) => setPosOverallMarginType(e.target.value)}
+                    options={[
+                      { value: 'flat', label: 'Flat (₹)' },
+                      { value: 'percent', label: 'Percent (%)' },
+                    ]}
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    className="font-mono text-xs"
+                    placeholder={posOverallMarginType === 'percent' ? 'e.g. 5' : 'e.g. 100'}
+                    value={posOverallMarginValue}
+                    onChange={(e: any) => setPosOverallMarginValue(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Calculations Breakdown */}
+            <div className="p-3 rounded-xl bg-muted/10 border border-border/50 space-y-1.5 text-xs font-mono">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Subtotal:</span>
+                <span>{formatINR(posSubtotal)}</span>
+              </div>
+              {posOverallMarginAmount > 0 && (
+                <div className="flex justify-between text-amber-600 dark:text-amber-400">
+                  <span>Charges {posOverallMarginType === 'percent' ? `(${posOverallMarginValue}%)` : ''}:</span>
+                  <span>+ {formatINR(posOverallMarginAmount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-muted-foreground">
+                <span>Taxable:</span>
+                <span>{formatINR(posTaxable)}</span>
+              </div>
+              {posGstEnabled ? (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>GST ({posGstPct}%):</span>
+                  <span>+ {formatINR(posGstAmount)}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between text-muted-foreground/60 italic">
+                  <span>GST:</span>
+                  <span>Disabled</span>
+                </div>
+              )}
+              <div className="flex justify-between text-base font-bold text-foreground pt-2 border-t border-border/60">
+                <span>Order Total:</span>
+                <span className="text-primary font-black text-lg">{formatINR(posTotal)}</span>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-3 border-t border-border/50">
