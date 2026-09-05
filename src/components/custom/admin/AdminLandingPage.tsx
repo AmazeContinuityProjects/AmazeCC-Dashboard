@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, LayoutGrid, Cpu, Clock, AlertTriangle, 
-  Database, RefreshCw, TrendingUp, ListFilter, Server, Plus, ArrowUpRight
+  Database, RefreshCw, TrendingUp, ListFilter, Server, Plus, ArrowUpRight,
+  CheckCircle2, AlertCircle, Sparkles, ChevronRight, Zap, ShieldAlert, Layers
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { motion } from 'framer-motion';
@@ -139,6 +140,11 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab }: Admi
   const maxMonthlyCount = Math.max(...monthlyPapers.map((m: any) => m?.count || 0), 1);
   const maxSubjectCount = Math.max(...topSubjects.map((t: any) => t?.count || 0), 1);
 
+  // Determine active triage items requiring administrator action
+  const hasFailedOcr = papers.failedOcr > 0;
+  const hasPendingReview = papers.pendingReview > 0;
+  const hasPendingOcr = papers.pendingOcr > 0;
+
   return (
     <div className="space-y-8 animate-fadeIn">
       <SectionHeader 
@@ -146,17 +152,102 @@ export default function AdminLandingPage({ setActiveTab, setActiveSubTab }: Admi
         description="Monitor system metrics, queue pipelines, question bank volume, and storage utilization." 
         breadcrumbs={[{ label: 'Admin', href: '#' }, { label: 'Dashboard', active: true }]}
         action={
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={() => fetchStats()} 
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Refresh Data
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => setIsUploadModalOpen(true)}
+              className="flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Upload Paper
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => fetchStats()} 
+              className="flex items-center gap-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         }
       />
+
+      {/* Action Required: Live Triage Center */}
+      {(hasFailedOcr || hasPendingReview || hasPendingOcr) && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+              Action Required & Pipeline Triage
+            </h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            {hasFailedOcr && (
+              <div 
+                onClick={() => { setActiveTab('qbank'); setActiveSubTab('queue'); }}
+                className="cursor-pointer p-4 rounded-2xl bg-destructive/10 border border-destructive/20 hover:border-destructive/40 transition-all group flex items-start justify-between"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-destructive/20 text-destructive mt-0.5">
+                    <ShieldAlert className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-destructive flex items-center gap-1.5">
+                      {papers.failedOcr} OCR Failure{papers.failedOcr > 1 ? 's' : ''}
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Papers failed during AI vision extraction. Review logs or retry.</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-destructive/70 group-hover:translate-x-1 transition-transform shrink-0 mt-1" />
+              </div>
+            )}
+
+            {hasPendingReview && (
+              <div 
+                onClick={() => { setActiveTab('qbank'); setActiveSubTab('queue'); }}
+                className="cursor-pointer p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-all group flex items-start justify-between"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 mt-0.5">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                      {papers.pendingReview} Awaiting Review
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Extracted questions are ready for split-screen verification & publish.</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-amber-500/70 group-hover:translate-x-1 transition-transform shrink-0 mt-1" />
+              </div>
+            )}
+
+            {hasPendingOcr && (
+              <div 
+                onClick={() => { setActiveTab('qbank'); setActiveSubTab('queue'); }}
+                className="cursor-pointer p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 hover:border-blue-500/40 transition-all group flex items-start justify-between"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400 mt-0.5">
+                    <Cpu className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                      {papers.pendingOcr} Processing OCR
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Papers currently undergoing background multimodal parsing.</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-blue-500/70 group-hover:translate-x-1 transition-transform shrink-0 mt-1" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -460,6 +551,7 @@ function DatabaseSection() {
   const [loading, setLoading] = useState(false);
   const [migrating, setMigrating] = useState(false);
   const [msg, setMsg] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const checkDb = async () => {
     setLoading(true); setMsg('');
@@ -489,16 +581,22 @@ function DatabaseSection() {
 
   return (
     <Card className="p-5">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5">
           <div className="p-2 bg-primary/10 rounded-xl text-primary">
             <Database className="w-4 h-4" />
           </div>
-          <h3 className="text-sm font-semibold text-foreground">Database Connectivity & Schema</h3>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Database Connectivity & Schema</h3>
+            <p className="text-xs text-muted-foreground">PostgreSQL health & schema migrations</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={checkDb} disabled={loading} className="h-8">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsExpanded(!isExpanded)} className="h-8 text-xs">
+            {isExpanded ? 'Hide Tables' : 'View Tables'}
           </Button>
           <Button variant="primary" size="sm" onClick={runMigration} disabled={migrating} className="flex items-center gap-1.5 h-8 text-xs">
             <Server className="w-3.5 h-3.5" />
@@ -515,16 +613,25 @@ function DatabaseSection() {
         <div className="flex justify-center py-3"><LoadingSpinner size="sm" /></div>
       ) : dbStatus?.connected ? (
         <div className="space-y-3 text-sm">
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${dbStatus.connected ? 'bg-emerald-500' : 'bg-destructive'}`} />
-            <span className="text-muted-foreground font-medium">Connected to PostgreSQL</span>
-            {dbStatus.db && <span className="font-mono text-muted-foreground">({dbStatus.db})</span>}
-            <span className="text-muted-foreground ml-auto text-xs">{dbStatus.serverTime ? new Date(dbStatus.serverTime).toLocaleString('en-IN') : ''}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-foreground font-medium text-xs">Connected to PostgreSQL</span>
+            </div>
+            {dbStatus.db && <span className="font-mono text-muted-foreground text-xs">({dbStatus.db})</span>}
+            {dbStatus.tables && (
+              <Badge variant="default" size="sm" className="text-[10px]">
+                {dbStatus.tables.length} Tables Active
+              </Badge>
+            )}
+            <span className="text-muted-foreground ml-auto text-xs font-mono">
+              {dbStatus.serverTime ? new Date(dbStatus.serverTime).toLocaleTimeString('en-IN') : ''}
+            </span>
           </div>
-          {dbStatus.tables && (
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Tables ({dbStatus.tables.length})</p>
-              <div className="flex flex-wrap gap-1.5">
+          {isExpanded && dbStatus.tables && (
+            <div className="pt-2 border-t border-border/50">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Schema Tables</p>
+              <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-1">
                 {dbStatus.tables.map((t: string) => (
                   <Badge key={t} variant="default" size="sm" className="font-mono text-[11px]">
                     {t}

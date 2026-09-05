@@ -1,9 +1,10 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   RefreshCcw, User, Users, LayoutGrid, MessageSquare, Bus, ShieldCheck, LogOut, 
   Menu, BarChart3, ChevronDown, FileText, Database, History, 
-  Image, Settings, GraduationCap, Building2, Cpu, Wallet, Boxes, Receipt
+  Image, Settings, GraduationCap, Building2, Cpu, Wallet, Boxes, Receipt,
+  Search, Command as CommandIcon, Plus, Bell, Sparkles
 } from 'lucide-react';
 import { 
   Sidebar as ReusableSidebar, 
@@ -11,6 +12,8 @@ import {
   SidebarFooter
 } from "@amazecontinuityprojects/amazeui";
 import { ThemeSwitcher } from "@/components/custom/ThemeSwitcher";
+import CommandPalette from "@/components/custom/admin/CommandPalette";
+import UploadPaperModal from "@/components/custom/qbank/UploadPaperModal";
 
 const navGroups = [
   {
@@ -32,10 +35,12 @@ const navGroups = [
     ]
   },
   {
-    label: 'GoRoBo',
+    label: 'GoRoBo Store',
     items: [
-      { id: 'gorobo-inventory', label: 'Inventory', icon: Boxes, requiredPermission: 'gorobo' },
-      { id: 'gorobo-orders', label: 'Orders', icon: Receipt, requiredPermission: 'gorobo' },
+      { id: 'gorobo-analytics', label: 'Store Overview', icon: BarChart3, requiredPermission: 'gorobo' },
+      { id: 'gorobo-inventory', label: 'Inventory & Stock', icon: Boxes, requiredPermission: 'gorobo' },
+      { id: 'gorobo-orders', label: 'Orders & Quoter', icon: Receipt, requiredPermission: 'gorobo' },
+      { id: 'gorobo-bundles', label: 'Project Kits', icon: Sparkles, requiredPermission: 'gorobo' },
       { id: 'gorobo-wallet', label: 'Amaze Wallet', icon: Wallet, requiredPermission: 'gorobo' },
     ]
   },
@@ -83,12 +88,29 @@ const subTabClass = (isActive: boolean) =>
 export default function AdminLayout({ children, activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLogout, username = 'Admin', userRole = 'admin', stats, userPermissions = [] }: AdminLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
+  // Keyboard shortcut listener for Cmd+K / Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const filteredNavGroups = navGroups.map(group => ({
     ...group,
     items: group.items.filter(item => {
       if (!item.requiredPermission) return true;
       if (userRole === 'superadmin') return true;
+      if (item.requiredPermission === 'faculty-directories') {
+        return userPermissions.includes('faculty-directories') || userPermissions.includes('faculty-directory');
+      }
       return userPermissions.includes(item.requiredPermission);
     })
   })).filter(group => group.items.length > 0);
@@ -117,24 +139,42 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
       {/* Desktop Sidebar */}
       <ReusableSidebar isOpen={!isCollapsed} onOpenChange={(open) => setIsCollapsed(!open)}>
         <SidebarHeader>
-          <div className="flex flex-row items-center gap-2.5 w-full">
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center text-info font-bold shadow-sm shrink-0">
-                <span className="text-sm">A</span>
-              </div>
-              {!isCollapsed && (
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-foreground tracking-tight truncate">AmazeCC</p>
-                  <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-bold truncate">Admin Portal</p>
+          <div className="flex flex-col gap-3 w-full">
+            <div className="flex flex-row items-center gap-2.5 w-full">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center text-info font-bold shadow-sm shrink-0">
+                  <span className="text-sm">A</span>
                 </div>
-              )}
+                {!isCollapsed && (
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-foreground tracking-tight truncate">AmazeCC</p>
+                    <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-bold truncate">Admin Portal</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {!isCollapsed && <ThemeSwitcher className="" />}
+                <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-1.5 rounded-lg hover:bg-accent/10 transition-colors text-muted-foreground">
+                  <Menu className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              {!isCollapsed && <ThemeSwitcher className="" />}
-              <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-1.5 rounded-lg hover:bg-accent/10 transition-colors text-muted-foreground">
-                <Menu className="w-4 h-4" />
+
+            {/* Quick Command Trigger in Sidebar */}
+            {!isCollapsed && (
+              <button
+                onClick={() => setIsCommandOpen(true)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-muted/50 hover:bg-muted/80 border border-border/50 text-muted-foreground hover:text-foreground text-xs transition-all cursor-pointer shadow-2xs group"
+              >
+                <div className="flex items-center gap-2">
+                  <Search className="w-3.5 h-3.5 group-hover:text-primary transition-colors" />
+                  <span className="font-medium">Quick search...</span>
+                </div>
+                <kbd className="px-1.5 py-0.5 rounded bg-background border border-border/70 text-[10px] font-mono text-muted-foreground/80 font-bold">
+                  ⌘K
+                </kbd>
               </button>
-            </div>
+            )}
           </div>
         </SidebarHeader>
 
@@ -214,13 +254,32 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
           )}
           <button 
             onClick={onLogout}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-danger hover:bg-danger/10 transition-all font-semibold w-full"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-danger hover:bg-danger/10 transition-all font-semibold w-full cursor-pointer"
           >
             <LogOut className="w-4 h-4 shrink-0" />
             {!isCollapsed && <span className="text-sm">Sign Out</span>}
           </button>
         </SidebarFooter>
       </ReusableSidebar>
+
+      {/* Mobile Top Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-card/85 backdrop-blur-2xl border-b border-border/60 flex items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-info/10 flex items-center justify-center text-info font-bold text-xs">
+            A
+          </div>
+          <span className="text-sm font-bold text-foreground">AmazeCC</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsCommandOpen(true)}
+            className="p-2 rounded-xl bg-muted/60 text-muted-foreground hover:text-foreground"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+          <ThemeSwitcher className="" />
+        </div>
+      </div>
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-4 left-4 right-4 z-50 h-14 bg-card/85 backdrop-blur-2xl border border-border/60 shadow-xl rounded-2xl flex items-center justify-around px-2">
@@ -290,7 +349,7 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
       )}
 
       {/* Main Content Area */}
-      <main className={`flex-1 min-w-0 transition-all duration-300 md:ml-[280px] md:mr-4 pb-20 md:pb-0`}>
+      <main className={`flex-1 min-w-0 transition-all duration-300 md:ml-[280px] md:mr-4 pt-16 md:pt-0 pb-20 md:pb-0`}>
         <div className="w-full p-4 md:p-6 lg:p-8 animate-fadeIn">
           {/* Mobile Sub-tabs */}
           <div className="md:hidden mb-4">
@@ -319,6 +378,24 @@ export default function AdminLayout({ children, activeTab, setActiveTab, activeS
         </div>
       </main>
 
+      {/* Command Palette Modal */}
+      <CommandPalette 
+        isOpen={isCommandOpen}
+        onClose={() => setIsCommandOpen(false)}
+        setActiveTab={setActiveTab}
+        setActiveSubTab={setActiveSubTab}
+        onLogout={onLogout}
+        onOpenUpload={() => setIsUploadModalOpen(true)}
+      />
+
+      {/* Global Upload Modal */}
+      <UploadPaperModal 
+        isOpen={isUploadModalOpen} 
+        onClose={() => setIsUploadModalOpen(false)} 
+        courses={[]} 
+        username="admin" 
+        isAdmin={true} 
+      />
     </div>
   );
 }

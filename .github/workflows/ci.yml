@@ -49,8 +49,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11.7.0
 
       - name: Dependency audit
         # Reports high/critical advisories. Non-blocking: the remaining 9 high
@@ -74,8 +72,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11.7.0
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -97,8 +93,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11.7.0
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -120,8 +114,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11.7.0
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -143,8 +135,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11.7.0
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

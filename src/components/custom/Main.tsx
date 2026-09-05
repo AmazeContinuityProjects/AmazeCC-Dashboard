@@ -8,7 +8,8 @@ import { Input, Button } from "@/components/custom/admin/AdminUI";
 
 const AdminLayout = dynamic(() => import('@/components/custom/admin/AdminLayout'), { ssr: false });
 const AdminLandingPage = dynamic(() => import('@/components/custom/admin/AdminLandingPage'), { ssr: false });
-const AdminDashboard = dynamic(() => import('@/components/custom/dayscholar/AdminDashboard'), { ssr: false });
+const AdminQueueTab = dynamic(() => import('@/components/custom/qbank/AdminQueueTab'), { ssr: false });
+const PushBroadcastTab = dynamic(() => import('@/components/custom/admin/PushBroadcastTab'), { ssr: false });
 const AdminUsersTab = dynamic(() => import('@/components/custom/admin/AdminUsersTab'), { ssr: false });
 const PapersManager = dynamic(() => import('@/components/custom/admin/PapersManager'), { ssr: false });
 const QuestionsManager = dynamic(() => import('@/components/custom/admin/QuestionsManager'), { ssr: false });
@@ -21,9 +22,7 @@ const FacultyDirectoriesTab = dynamic(() => import('@/components/custom/admin/Fa
 const ClubsManagementTab = dynamic(() => import('@/components/custom/admin/ClubsManagementTab'), { ssr: false });
 const CabShareAdminTab = dynamic(() => import('@/components/custom/admin/CabShareAdminTab'), { ssr: false });
 const TransportManager = dynamic(() => import('@/components/custom/admin/TransportManager'), { ssr: false });
-const GoRoboInventory = dynamic(() => import('@/components/custom/admin/gorobo/GoRoboInventory'), { ssr: false });
-const GoRoboBillProcessor = dynamic(() => import('@/components/custom/admin/gorobo/GoRoboBillProcessor'), { ssr: false });
-const AmazeWallet = dynamic(() => import('@/components/custom/admin/gorobo/AmazeWallet'), { ssr: false });
+const GoRoboAdmin = dynamic(() => import('@/components/custom/admin/gorobo/GoRoboAdmin'), { ssr: false });
 
 export default function LoginPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -190,20 +189,24 @@ export default function LoginPage() {
   {activeTab === 'dashboard' && (
   <AdminLandingPage setActiveTab={setActiveTab} setActiveSubTab={setActiveSubTab} />
   )}
-  {(activeTab === 'qbank' || activeTab === 'push') && (
-  <AdminDashboard activeTab={activeTab} activeSubTab={activeSubTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+  {activeTab === 'qbank' && (
+  <AdminQueueTab />
+  )}
+  {activeTab === 'push' && (
+  <PushBroadcastTab />
   )}
   {activeTab === 'buses' && (
   <TransportManager />
   )}
-  {(activeTab === 'gorobo' || activeTab === 'gorobo-inventory') && (
-    <GoRoboInventory />
-  )}
-  {(activeTab === 'gorobo-orders' || activeTab === 'gorobo-billing') && (
-    <GoRoboBillProcessor />
-  )}
-  {activeTab === 'gorobo-wallet' && (
-    <AmazeWallet />
+  {(activeTab === 'gorobo' || activeTab === 'gorobo-inventory' || activeTab === 'gorobo-orders' || activeTab === 'gorobo-billing' || activeTab === 'gorobo-wallet' || activeTab === 'gorobo-bundles' || activeTab === 'gorobo-analytics') && (
+    <GoRoboAdmin
+      initialTab={
+        activeTab === 'gorobo-inventory' ? 'inventory' :
+        activeTab === 'gorobo-orders' || activeTab === 'gorobo-billing' ? 'orders' :
+        activeTab === 'gorobo-wallet' ? 'wallet' :
+        activeTab === 'gorobo-bundles' ? 'bundles' : 'analytics'
+      }
+    />
   )}
   {activeTab === 'papers' && (
   <PapersManager />

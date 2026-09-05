@@ -309,6 +309,7 @@ function StopsSection() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<number | null>(null);
   const [msg, setMsg] = useState('');
+  const [viewMode, setViewMode] = useState<'edit' | 'timeline'>('edit');
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -383,7 +384,7 @@ function StopsSection() {
         </Alert>
       )}
 
-      <p className="text-sm text-muted-foreground">Click a route to view and modify its boarding points and pickup timings.</p>
+      <p className="text-sm text-muted-foreground">Click a route to view its transit timeline or modify boarding points and pickup timings.</p>
 
       <div className="space-y-3">
         {routes.map(route => (
@@ -406,39 +407,107 @@ function StopsSection() {
 
             {expandedRoute === route.id && (
               <div className="border-t border-border/50 p-5 space-y-4 bg-muted/10">
+                {/* View Mode Switcher */}
+                <div className="flex justify-between items-center pb-2 border-b border-border/50">
+                  <div className="flex gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/50">
+                    <button
+                      onClick={() => setViewMode('edit')}
+                      className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                        viewMode === 'edit' ? 'bg-card text-foreground shadow-2xs' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Edit List
+                    </button>
+                    <button
+                      onClick={() => setViewMode('timeline')}
+                      className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                        viewMode === 'timeline' ? 'bg-card text-foreground shadow-2xs' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Visual Timeline
+                    </button>
+                  </div>
+
+                  <span className="text-xs text-muted-foreground font-medium">
+                    {stops.length} stop{stops.length === 1 ? '' : 's'} on route
+                  </span>
+                </div>
+
                 {stops.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">No stops defined. Click "Add Stop" to begin.</p>
                 )}
-                <div className="space-y-2">
-                  {stops.map((stop, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-muted-foreground min-w-[2.5ch]">#{stop.stop_order}</span>
-                      <Input
-                        className="flex-1"
-                        placeholder="Stop name"
-                        value={stop.stop_name}
-                        onChange={(e: any) => updateStop(idx, 'stop_name', e.target.value)}
-                      />
-                      <Input
-                        className="w-32"
-                        placeholder="e.g. 6:30 AM"
-                        value={stop.pickup_time}
-                        onChange={(e: any) => updateStop(idx, 'pickup_time', e.target.value)}
-                      />
-                      <Button size="icon-sm" variant="ghost" onClick={() => removeStop(idx)} className="text-destructive hover:bg-destructive/10">
-                        <Trash2 className="w-4 h-4" />
+
+                {viewMode === 'timeline' ? (
+                  /* Visual Transit Metro Timeline */
+                  <div className="py-3 px-4 bg-card/60 rounded-2xl border border-border/60">
+                    <div className="relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-primary/30">
+                      {stops.map((stop, idx) => {
+                        const isFirst = idx === 0;
+                        const isLast = idx === stops.length - 1;
+                        return (
+                          <div key={idx} className="relative flex items-center justify-between group">
+                            <div 
+                              className={`absolute -left-6 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
+                                isFirst 
+                                  ? 'bg-emerald-500 border-background text-white shadow-xs' 
+                                  : isLast 
+                                  ? 'bg-primary border-background text-primary-foreground shadow-xs' 
+                                  : 'bg-card border-primary/50 text-foreground'
+                              }`}
+                            >
+                              {stop.stop_order}
+                            </div>
+                            <div className="pl-3">
+                              <p className="text-sm font-bold text-foreground leading-tight">
+                                {stop.stop_name || 'Unnamed Stop'}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                {isFirst ? 'Origin / First Boarding Point' : isLast ? 'Final Approach' : `Stop #${stop.stop_order}`}
+                              </p>
+                            </div>
+                            <Badge variant={stop.pickup_time ? 'info' : 'default'} size="sm" className="font-mono text-xs">
+                              {stop.pickup_time || 'No time set'}
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  /* Standard Form Editing List */
+                  <>
+                    <div className="space-y-2">
+                      {stops.map((stop, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-muted-foreground min-w-[2.5ch]">#{stop.stop_order}</span>
+                          <Input
+                            className="flex-1"
+                            placeholder="Stop name"
+                            value={stop.stop_name}
+                            onChange={(e: any) => updateStop(idx, 'stop_name', e.target.value)}
+                          />
+                          <Input
+                            className="w-32"
+                            placeholder="e.g. 6:30 AM"
+                            value={stop.pickup_time}
+                            onChange={(e: any) => updateStop(idx, 'pickup_time', e.target.value)}
+                          />
+                          <Button size="icon-sm" variant="ghost" onClick={() => removeStop(idx)} className="text-destructive hover:bg-destructive/10">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button variant="secondary" size="sm" onClick={addStop} className="flex items-center gap-1.5">
+                        <Plus className="w-4 h-4" /> Add Stop
+                      </Button>
+                      <Button size="sm" variant="primary" onClick={() => saveStops(route.id)} disabled={saving === route.id} className="flex items-center gap-1.5">
+                        <Save className="w-4 h-4" /> {saving === route.id ? 'Saving...' : 'Save Stops'}
                       </Button>
                     </div>
-                  ))}
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Button variant="secondary" size="sm" onClick={addStop} className="flex items-center gap-1.5">
-                    <Plus className="w-4 h-4" /> Add Stop
-                  </Button>
-                  <Button size="sm" variant="primary" onClick={() => saveStops(route.id)} disabled={saving === route.id} className="flex items-center gap-1.5">
-                    <Save className="w-4 h-4" /> {saving === route.id ? 'Saving...' : 'Save Stops'}
-                  </Button>
-                </div>
+                  </>
+                )}
               </div>
             )}
           </Card>
