@@ -43,7 +43,13 @@ export interface GoroboOrderJson {
   taxable: number;
   gstPct: number;
   gstAmount: number;
+  gstEnabled?: boolean;
   shipmentCost: number;
+  overallMarginType?: 'flat' | 'percent';
+  overallMarginValue?: number;
+  overallMarginAmount?: number;
+  // legacy flat field for backwards compat
+  overallMargin?: number;
   notes: string;
   deliveryMode?: string;
   mapsUrl?: string;
@@ -244,7 +250,10 @@ export const goroboApi = {
     items: GoroboLine[];
     discountPct?: number;
     gstPct?: number;
+    gstEnabled?: boolean;
     shipmentCost?: number;
+    overallMarginType?: 'flat' | 'percent';
+    overallMarginValue?: number;
     notes?: string;
     deliveryMode?: string;
     status?: string;
@@ -258,7 +267,7 @@ export const goroboApi = {
     );
   },
 
-  saveQuote(id: string, payload: { items: GoroboLine[]; discountPct: number; gstPct: number; shipmentCost: number; notes: string }) {
+  saveQuote(id: string, payload: { items: GoroboLine[]; discountPct: number; gstPct: number; gstEnabled: boolean; shipmentCost: number; overallMarginType?: 'flat' | 'percent'; overallMarginValue?: number; notes: string }) {
     return handle<{ success: boolean; order: GoroboOrderJson }>(
       apiFetch(`/api/admin/gorobo/orders/${id}`, {
         method: 'PUT',
