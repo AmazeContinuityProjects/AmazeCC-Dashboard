@@ -254,6 +254,29 @@ export default function GoRoboBillProcessor() {
     return Math.round((taxable + gstAmount + (Number(shipmentCost) || 0)) * 100) / 100;
   }, [taxable, gstAmount, shipmentCost]);
 
+  // Live order snapshot for PDFs / exports — uses unsaved editor state so
+  // toggling GST off hides it on the BOM immediately (no save required).
+  const liveOrderForPdf = useMemo<GoroboOrderJson | null>(() => {
+    if (!detail) return null;
+    return {
+      ...detail,
+      items: lines,
+      subtotal,
+      discountPct: Number(discountPct) || 0,
+      discountAmount,
+      taxable,
+      gstPct: gstEnabled ? (Number(gstPct) || 0) : 0,
+      gstAmount,
+      gstEnabled,
+      shipmentCost: Number(shipmentCost) || 0,
+      overallMarginType,
+      overallMarginValue: Number(overallMarginValue) || 0,
+      overallMarginAmount,
+      total: grandTotal,
+      notes,
+    };
+  }, [detail, lines, subtotal, discountPct, discountAmount, taxable, gstPct, gstAmount, gstEnabled, shipmentCost, overallMarginType, overallMarginValue, overallMarginAmount, grandTotal, notes]);
+
   // Line Item actions
   const updateLineQty = (index: number, quantity: number) => {
     if (quantity <= 0) {
@@ -410,7 +433,7 @@ export default function GoRoboBillProcessor() {
     const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
     const itemsList = lines.map(l => `• ${getDisplayName(l)} (x${l.quantity}) - ₹${(l.unitPrice * l.quantity).toFixed(2)}`).join('%0A');
     const chargesLine = overallMarginAmount > 0 ? `%0A*Charges${overallMarginType === 'percent' ? ` (${overallMarginValue}%)` : ''}:* ₹${overallMarginAmount.toFixed(2)}` : '';
-    const gstLine = gstEnabled ? `%0A*GST (${gstPct}%):* ₹${gstAmount.toFixed(2)}` : '%0A*GST:* Disabled';
+    const gstLine = gstEnabled ? `%0A*GST (${gstPct}%):* ₹${gstAmount.toFixed(2)}` : '';
     const text = `Hi ${encodeURIComponent(detail.userName)}! 👋%0A%0AYour GoRoBo Electronics quote for Order *#${detail.id.slice(0, 8).toUpperCase()}* is ready:%0A%0A${itemsList}%0A%0A*Subtotal:* ₹${subtotal.toFixed(2)}${chargesLine}${gstLine}%0A*Total Amount:* ₹${grandTotal.toFixed(2)}%0A%0APlease confirm your order to proceed with packaging! 🚀`;
     window.open(`https://wa.me/${phoneWithCountry}?text=${text}`, '_blank');
   };
@@ -587,7 +610,7 @@ export default function GoRoboBillProcessor() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => downloadBomPdf(detail, itemMap)}
+                onClick={() => downloadBomPdf(liveOrderForPdf ?? detail, itemMap)}
                 className="flex items-center gap-1.5 text-xs"
                 title="Download A4 PDF Tax Invoice with GoRobo Logo"
               >
@@ -597,7 +620,7 @@ export default function GoRoboBillProcessor() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => downloadThermalReceiptPdf(detail, itemMap)}
+                onClick={() => downloadThermalReceiptPdf(liveOrderForPdf ?? detail, itemMap)}
                 className="flex items-center gap-1.5 text-xs"
                 title="Print 80mm POS Thermal Slip"
               >
@@ -950,15 +973,10 @@ export default function GoRoboBillProcessor() {
                     <span>Taxable Amount:</span>
                     <span>{formatINR(taxable)}</span>
                   </div>
-                  {gstEnabled ? (
+                  {gstEnabled && (
                     <div className="flex justify-between text-muted-foreground">
                       <span>GST ({gstPct}%):</span>
                       <span>+ {formatINR(gstAmount)}</span>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between text-muted-foreground/60 italic">
-                      <span>GST:</span>
-                      <span>Disabled</span>
                     </div>
                   )}
                   {Number(shipmentCost) > 0 && (
@@ -1538,15 +1556,10 @@ export default function GoRoboBillProcessor() {
                 <span>Taxable:</span>
                 <span>{formatINR(posTaxable)}</span>
               </div>
-              {posGstEnabled ? (
+              {posGstEnabled && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>GST ({posGstPct}%):</span>
                   <span>+ {formatINR(posGstAmount)}</span>
-                </div>
-              ) : (
-                <div className="flex justify-between text-muted-foreground/60 italic">
-                  <span>GST:</span>
-                  <span>Disabled</span>
                 </div>
               )}
               {Number(posShipmentCost) > 0 && (

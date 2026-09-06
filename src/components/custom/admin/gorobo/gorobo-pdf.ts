@@ -304,8 +304,13 @@ export async function downloadThermalReceiptPdf(order: GoroboOrderJson, itemMap?
   doc.setTextColor(...MUTED);
   doc.text('Campus Hardware & Maker Hub', THERMAL_W / 2, y, { align: 'center' });
   y += 10;
-  doc.text('GSTIN: 33AAAAA0000A1Z5', THERMAL_W / 2, y, { align: 'center' });
-  y += 12;
+  const isGstOnForHeader = order.gstEnabled ?? (Number(order.gstAmount) > 0 || Number(order.gstPct) > 0 ? true : false);
+  if (isGstOnForHeader) {
+    doc.text('GSTIN: 33AAAAA0000A1Z5', THERMAL_W / 2, y, { align: 'center' });
+    y += 12;
+  } else {
+    y += 2;
+  }
 
   // Dashed separator
   doc.setLineDashPattern([2, 2], 0);
