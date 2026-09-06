@@ -513,6 +513,9 @@ export default function GoRoboBillProcessor() {
       setPosLines([]);
       setPosCustomerName('');
       setPosCustomerPhone('');
+      setPosDiscountPct('0');
+      setPosShipmentCost('0');
+      setPosOverallMarginValue('0');
       fetchOrders();
       openDetail(res.order.id);
     } catch (err: any) {
@@ -1207,8 +1210,10 @@ export default function GoRoboBillProcessor() {
               setPosLines([]);
               setPosCustomerName('');
               setPosCustomerPhone('');
+              setPosDiscountPct('0');
               setPosGstEnabled(false);
               setPosGstPct('18');
+              setPosShipmentCost('0');
               setPosOverallMarginType('flat');
               setPosOverallMarginValue('0');
               setCreateModalOpen(true);
@@ -1444,6 +1449,27 @@ export default function GoRoboBillProcessor() {
 
             {/* POS Quote Adjustments */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-border/50 pt-3">
+              <div>
+                <label className="text-xs font-bold text-foreground">Discount %</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="10"
+                  className="mt-1 font-mono text-xs"
+                  value={posDiscountPct}
+                  onChange={(e: any) => setPosDiscountPct(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-foreground">Delivery / Packaging Fee (₹)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  className="mt-1 font-mono text-xs"
+                  value={posShipmentCost}
+                  onChange={(e: any) => setPosShipmentCost(e.target.value)}
+                />
+              </div>
               <div className="p-3 rounded-xl border border-border/50 bg-muted/10 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
@@ -1496,6 +1522,12 @@ export default function GoRoboBillProcessor() {
                 <span>Subtotal:</span>
                 <span>{formatINR(posSubtotal)}</span>
               </div>
+              {posDiscountAmount > 0 && (
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                  <span>Discount ({posDiscountPct}%):</span>
+                  <span>- {formatINR(posDiscountAmount)}</span>
+                </div>
+              )}
               {posOverallMarginAmount > 0 && (
                 <div className="flex justify-between text-amber-600 dark:text-amber-400">
                   <span>Charges {posOverallMarginType === 'percent' ? `(${posOverallMarginValue}%)` : ''}:</span>
@@ -1515,6 +1547,12 @@ export default function GoRoboBillProcessor() {
                 <div className="flex justify-between text-muted-foreground/60 italic">
                   <span>GST:</span>
                   <span>Disabled</span>
+                </div>
+              )}
+              {Number(posShipmentCost) > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Shipping Fee:</span>
+                  <span>+ {formatINR(Number(posShipmentCost))}</span>
                 </div>
               )}
               <div className="flex justify-between text-base font-bold text-foreground pt-2 border-t border-border/60">
