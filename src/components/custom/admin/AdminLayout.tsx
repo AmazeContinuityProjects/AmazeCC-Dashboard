@@ -51,7 +51,7 @@ const navGroups = [
       { id: 'buses', label: 'Transport', icon: Bus, requiredPermission: 'transport' },
       { id: 'cabshare', label: 'Cab Share', icon: Bus, requiredPermission: null },
       { id: 'push', label: 'Push Broadcast', icon: ShieldCheck, requiredPermission: null },
-      { id: 'users', label: 'Users', icon: Users, requiredPermission: 'manage_users' },
+      { id: 'users', label: 'Users', icon: Users, requiredPermission: 'users' },
       { id: 'clubs', label: 'Clubs & Chapters', icon: Building2, requiredPermission: null },
       { id: 'settings', label: 'Settings', icon: Settings, requiredPermission: null },
     ]
@@ -66,7 +66,7 @@ interface AdminLayoutProps {
   setActiveSubTab: (tab: string) => void;
   onLogout: () => void;
   username?: string;
-  userRole?: 'superadmin' | 'admin';
+  userRole?: 'superadmin' | 'admin' | 'user';
   stats?: { queueCount: number; busRoutes: number; totalPapers: number; activeUsers: number };
   userPermissions?: string[];
 }

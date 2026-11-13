@@ -33,7 +33,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubTab, setActiveSubTab] = useState('queue');
-  const [userRole, setUserRole] = useState<'superadmin' | 'admin'>('admin');
+  const [userRole, setUserRole] = useState<'superadmin' | 'admin' | 'user'>('user');
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
 
   useEffect(() => {
@@ -88,15 +88,21 @@ export default function LoginPage() {
   const data = await res.json();
 
   if (res.ok && data.token) {
-  // Amaze ID has one elevated role (`admin`); the hono API grants it all
-  // permissions, so mirror that here for the UI gates.
-  const permissions = ["dashboard","qbank","buses","push","fresher-resources","faculty-directories","faculty-directory","users","transport","gorobo"];
-  const role = data.user?.role === 'admin' ? 'superadmin' : 'admin';
+  // Amaze ID RBAC: role "superadmin" gets all sections; "admin" gets the
+  // sections listed in their `permissions` field (comma-separated in D1).
+  const ALL_SECTIONS = ["dashboard","qbank","buses","transport","gorobo","clubs","cabshare","fresher-resources","faculty-directories","push","settings","storage","users","ocr","migrate","audit-logs"];
+  const rawRole = data.user?.role;
+  const role = rawRole === 'superadmin' ? 'superadmin' : rawRole === 'admin' ? 'admin' : 'user';
+  const perms: string[] = role === 'superadmin'
+    ? ALL_SECTIONS
+    : (typeof data.user?.permissions === 'string'
+        ? data.user.permissions.split(',').map((p: string) => p.trim()).filter(Boolean)
+        : Array.isArray(data.user?.permissions) ? data.user.permissions : []);
   localStorage.setItem("admin_token", data.token);
   localStorage.setItem("admin_role", role);
-  localStorage.setItem('admin_permissions', JSON.stringify(permissions));
-  setUserRole(role as 'superadmin' | 'admin');
-  setUserPermissions(permissions);
+  localStorage.setItem('admin_permissions', JSON.stringify(perms));
+  setUserRole(role);
+  setUserPermissions(perms);
   setIsAuthenticated(true);
   } else {
   setError(data.error || data.message || "Invalid email or password");
