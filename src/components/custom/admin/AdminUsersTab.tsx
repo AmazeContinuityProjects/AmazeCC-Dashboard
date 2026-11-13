@@ -17,27 +17,38 @@ import { UserPlus, Trash2, Shield, ShieldCheck, UserX, RefreshCcw, AlertCircle, 
 import { exportToExcel } from '@/lib/export';
 
 interface AdminUser {
-  username: string;
-  role: 'superadmin' | 'admin';
+  id: string;
+  username: string; // email — kept for API path compatibility
+  name: string;
+  email: string;
+  role: 'superadmin' | 'admin' | 'user';
   permissions: string[];
-  added_by: string;
+  vtopRegNo: string | null;
   is_active: boolean;
   created_at: string;
 }
 
 interface AdminUsersTabProps {
-  currentUserRole: 'superadmin' | 'admin';
+  currentUserRole: 'superadmin' | 'admin' | 'user';
 }
 
 const AVAILABLE_PERMISSIONS = [
-  { id: 'dashboard', label: 'Dashboard', description: 'View dashboard overview' },
+  { id: 'dashboard', label: 'Dashboard', description: 'View dashboard overview & audit logs' },
   { id: 'qbank', label: 'Q-Bank', description: 'Manage question bank' },
   { id: 'buses', label: 'Bus Database', description: 'Manage bus routes' },
-  { id: 'push', label: 'Push Broadcast', description: 'Send push notifications' },
+  { id: 'transport', label: 'Transport', description: 'Manage transport routes & rules' },
+  { id: 'gorobo', label: 'GoRoBo', description: 'GoRoBo inventory, billing & wallet' },
+  { id: 'clubs', label: 'Clubs', description: 'Manage clubs & representatives' },
+  { id: 'cabshare', label: 'Cab Share', description: 'Manage cab-share hubs & trips' },
   { id: 'fresher-resources', label: 'Fresher Resources', description: 'Manage fresher resources' },
   { id: 'faculty-directories', label: 'Faculty Directories', description: 'Manage faculty directories' },
-  { id: 'gorobo', label: 'GoRoBo', description: 'GoRoBo inventory, billing & wallet' },
-  { id: 'users', label: 'User Management', description: 'Manage admin users' },
+  { id: 'push', label: 'Push Broadcast', description: 'Send push notifications' },
+  { id: 'settings', label: 'Settings', description: 'Manage global settings' },
+  { id: 'storage', label: 'Storage', description: 'Manage object storage' },
+  { id: 'users', label: 'User Management', description: 'Manage admin user access' },
+  { id: 'ocr', label: 'OCR', description: 'Run OCR pipelines' },
+  { id: 'migrate', label: 'Migrations', description: 'Run data migrations' },
+  { id: 'audit-logs', label: 'Audit Logs', description: 'View admin audit logs' },
 ];
 
 export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
@@ -47,7 +58,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newRole, setNewRole] = useState<'admin' | 'superadmin'>('admin');
-  const [newPermissions, setNewPermissions] = useState<string[]>(['dashboard', 'qbank', 'buses', 'push', 'fresher-resources', 'faculty-directories']);
+  const [newPermissions, setNewPermissions] = useState<string[]>(['dashboard']);
   const [addingUser, setAddingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
@@ -90,7 +101,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: newUsername.trim(),
+          email: newUsername.trim().toLowerCase(),
           role: newRole,
           permissions: newPermissions,
         }),
@@ -101,7 +112,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
         setUsers(prev => [data.user, ...prev]);
         setNewUsername('');
         setNewRole('admin');
-        setNewPermissions(['dashboard', 'qbank', 'buses', 'push', 'fresher-resources', 'faculty-directories']);
+        setNewPermissions(['dashboard']);
         setShowAddForm(false);
       } else {
         setError(data.error || 'Failed to add user');
@@ -117,7 +128,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
     if (!confirm(`Are you sure you want to remove ${username}?`)) return;
 
     try {
-      const res = await apiFetch(`/api/admin/users/${username}`, {
+      const res = await apiFetch(`/api/admin/users/${encodeURIComponent(username)}`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -134,7 +145,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
 
   const handleUpdatePermissions = async (username: string) => {
     try {
-      const res = await apiFetch(`/api/admin/users/${username}`, {
+      const res = await apiFetch(`/api/admin/users/${encodeURIComponent(username)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ permissions: editPermissions }),
@@ -154,7 +165,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
 
   const handleToggleActive = async (username: string, isActive: boolean) => {
     try {
-      const res = await apiFetch(`/api/admin/users/${username}`, {
+      const res = await apiFetch(`/api/admin/users/${encodeURIComponent(username)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !isActive }),
@@ -185,10 +196,11 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
 
   const handleExport = () => {
     const exportData = users.map(u => ({
-      Username: u.username,
+      Name: u.name,
+      Email: u.email,
+      'VTOP Reg': u.vtopRegNo ?? '',
       Role: u.role,
       Permissions: u.permissions.join(', '),
-      'Added By': u.added_by,
       Status: u.is_active ? 'Active' : 'Inactive',
       'Created At': new Date(u.created_at).toLocaleString()
     }));
@@ -252,13 +264,20 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="VTOP Username *"
-                type="text"
+                label="Email *"
+                type="email"
                 value={newUsername}
                 onChange={(e: any) => setNewUsername(e.target.value)}
-                placeholder="e.g. 21BCE1234"
+                placeholder="e.g. 25blc1081@vitstudent.ac.in"
                 required
               />
+              <p className="col-span-2 -mt-2 text-xs text-muted-foreground">
+                The user must have signed up at{' '}
+                <a href="https://auth.amazecc.com/sign-up" target="_blank" rel="noreferrer" className="underline">
+                  auth.amazecc.com
+                </a>{' '}
+                first. Authorization here flips their Amaze ID role and permissions.
+              </p>
 
               <Select
                 label="Access Role"
@@ -330,7 +349,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-foreground">{user.username}</h3>
+                      <h3 className="text-base font-bold text-foreground">{user.name}</h3>
                       <Badge variant={user.role === 'superadmin' ? 'info' : 'default'} size="sm">
                         {user.role}
                       </Badge>
@@ -339,7 +358,7 @@ export default function AdminUsersTab({ currentUserRole }: AdminUsersTabProps) {
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Authorized by {user.added_by} &bull; {new Date(user.created_at).toLocaleDateString('en-IN')}
+                      {user.email}{user.vtopRegNo ? ` · ${user.vtopRegNo}` : ''} · {new Date(user.created_at).toLocaleDateString('en-IN')}
                     </p>
                   </div>
                 </div>
