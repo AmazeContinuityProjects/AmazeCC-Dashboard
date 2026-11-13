@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { apiFetch } from '@/lib/api';
+import { AUTH_BASE } from '@/lib/api';
 
 export default function LoginForm({ onAuthenticated }: { onAuthenticated?: () => void }) {
  const [username, setUsername] = useState('');
@@ -14,18 +14,19 @@ export default function LoginForm({ onAuthenticated }: { onAuthenticated?: () =>
  setError('');
 
  try {
- const res = await apiFetch('/api/admin/auth', {
+ // Amaze ID sign-in — cross-origin (static export; the auth worker answers CORS preflights).
+ const res = await fetch(`${AUTH_BASE}/api/auth/sign-in/email`, {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ username, password }),
+ body: JSON.stringify({ email: username, password }),
  });
 
  const data = await res.json();
- if (data.success && data.token) {
+ if (res.ok && data.token) {
  localStorage.setItem('admin_token', data.token);
  onAuthenticated?.();
  } else {
- setError(data.error || data.message || 'Authentication failed');
+ setError(data.error || data.message || 'Invalid email or password');
  }
  } catch (err) {
  setError('An error occurred. Please try again.');
@@ -48,14 +49,14 @@ export default function LoginForm({ onAuthenticated }: { onAuthenticated?: () =>
   <form onSubmit={handleSubmit} className="space-y-4">
   <div>
   <label className="block text-sm font-medium text-foreground mb-1.5">
-  VTOP ID
+  Email
   </label>
   <input
-  type="text"
+  type="email"
   value={username}
   onChange={(e) => setUsername(e.target.value)}
   className="w-full px-3.5 py-2.5 rounded-sm border border-input bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all outline-none text-sm"
-  placeholder="Enter admin VTOP ID"
+  placeholder="Enter admin Email"
   required
   />
   </div>

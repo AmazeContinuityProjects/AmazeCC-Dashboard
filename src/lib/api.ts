@@ -1,4 +1,8 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
+// AmazeCC API on Cloudflare Workers (hono.amazecc.com). Serves /api/login (VTOP) and /api/*.
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://hono.amazecc.com";
+// Amaze ID (auth.amazecc.com). Static export, so we call it cross-origin —
+// the worker answers CORS preflights with `access-control-allow-origin: *`.
+export const AUTH_BASE = process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.amazecc.com";
 
 export function apiUrl(path: string) {
  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
