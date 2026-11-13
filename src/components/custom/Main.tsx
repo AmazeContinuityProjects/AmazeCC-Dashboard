@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { apiFetch, fetcher } from "@/lib/api";
+import { fetcher, AUTH_BASE } from "@/lib/api";
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { Input, Button } from "@/components/custom/admin/AdminUI";
@@ -79,22 +79,27 @@ export default function LoginPage() {
   setError('');
 
   try {
-  const res = await apiFetch("/api/admin/auth", {
+  // Amaze ID sign-in. The API re-checks the session against the shared D1 on every request.
+  const res = await fetch(`${AUTH_BASE}/api/auth/sign-in/email`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ username, password })
+  body: JSON.stringify({ email: username, password })
   });
   const data = await res.json();
 
-  if (data.success && data.token) {
+  if (res.ok && data.token) {
+  // Amaze ID has one elevated role (`admin`); the hono API grants it all
+  // permissions, so mirror that here for the UI gates.
+  const permissions = ["dashboard","qbank","buses","push","fresher-resources","faculty-directories","faculty-directory","users","transport","gorobo"];
+  const role = data.user?.role === 'admin' ? 'superadmin' : 'admin';
   localStorage.setItem("admin_token", data.token);
-  localStorage.setItem("admin_role", data.role || "admin");
-  localStorage.setItem('admin_permissions', JSON.stringify(data.permissions));
-  setUserRole(data.role || "admin");
-  setUserPermissions(data.permissions || []);
+  localStorage.setItem("admin_role", role);
+  localStorage.setItem('admin_permissions', JSON.stringify(permissions));
+  setUserRole(role as 'superadmin' | 'admin');
+  setUserPermissions(permissions);
   setIsAuthenticated(true);
   } else {
-  setError(data.error || "Authentication failed");
+  setError(data.error || data.message || "Invalid email or password");
   }
   } catch (err) {
   setError("Failed to connect to authentication server");
@@ -104,6 +109,7 @@ export default function LoginPage() {
   };
 
   const handleLogout = () => {
+  fetch(`${AUTH_BASE}/api/auth/sign-out`, { method: "POST" }).catch(() => {});
   localStorage.removeItem("admin_token");
   localStorage.removeItem("admin_role");
   localStorage.removeItem("admin_permissions");
@@ -131,13 +137,15 @@ export default function LoginPage() {
 
   <form onSubmit={handleLogin} className="space-y-4">
   <div>
-  <label className="block text-sm font-medium text-muted-foreground mb-2">Username</label>
+  <label className="block text-sm font-medium text-muted-foreground mb-2">Email</label>
   <Input
-  type="text"
+  type="email"
+  name="email"
+  autoComplete="username"
   value={username}
   onChange={(e: any) => setUsername(e.target.value)}
   className="w-full bg-background/80 backdrop-blur-xl"
-  placeholder="Enter admin VTOP ID"
+  placeholder="Enter your Amaze ID email"
   required
   />
   </div>
