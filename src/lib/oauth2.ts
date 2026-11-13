@@ -19,7 +19,7 @@ const AUTH_BASE = process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.amazecc.com"
 export const OIDC = {
   clientId: "amazecc-admin-dashboard",
   redirectUri: () => `${window.location.origin}/auth/callback`,
-  scope: "openid profile email offline_access",
+  scope: "openid profile email",
   authorizeEndpoint: `${AUTH_BASE}/api/auth/oauth2/authorize`,
   tokenEndpoint: `${AUTH_BASE}/api/auth/oauth2/token`,
   userinfoEndpoint: `${AUTH_BASE}/api/auth/oauth2/userinfo`,
@@ -28,9 +28,12 @@ export const OIDC = {
 
 const KEYS = {
   accessToken: "amaze_oidc_access_token",
-  refreshToken: "amaze_oidc_refresh_token",
+  refreshToken: "amaze_oidc_refresh_token", // legacy cleanup only - scope no longer includes offline_access
   expiresAt: "amaze_oidc_expires_at",
+  idToken: "amaze_oidc_id_token",
   user: "amaze_oidc_user",
+  // Set on BOTH sign-out paths - blocks silent re-auth until the user signs in again.
+  signedOut: "amaze_oidc_signed_out",
   // One silent auto-attempt per browser tab session - prevents redirect loops
   // when the IdP has no session (prompt=none would bounce back with login_required).
   autoAttempted: "amaze_oidc_auto_attempted",
@@ -66,16 +69,17 @@ export async function createPkcePair(): Promise<{ verifier: string; challenge: s
   return { verifier, challenge };
 }
 
-function storeTokens(data: { access_token: string; expires_in?: number; refresh_token?: string }) {
+function storeTokens(data: { access_token: string; expires_in?: number; refresh_token?: string; id_token?: string }) {
   localStorage.setItem(KEYS.accessToken, data.access_token);
   // 30s clock-skew buffer so we never race token expiry at the API.
   const expiresAt = Date.now() + Math.max((data.expires_in ?? 3600) - 30, 60) * 1000;
   localStorage.setItem(KEYS.expiresAt, String(expiresAt));
   if (data.refresh_token) localStorage.setItem(KEYS.refreshToken, data.refresh_token);
+  if (data.id_token) localStorage.setItem(KEYS.idToken, data.id_token);
 }
 
 export function clearOidcStorage() {
-  for (const key of [KEYS.accessToken, KEYS.refreshToken, KEYS.expiresAt, KEYS.user]) {
+  for (const key of [KEYS.accessToken, KEYS.refreshToken, KEYS.expiresAt, KEYS.user, KEYS.idToken]) {
     localStorage.removeItem(key);
   }
   // One-time cleanup of the pre-OIDC storage keys.
@@ -165,63 +169,97 @@ export async function handleCallback(): Promise<CallbackResult> {
     const desc = body && typeof body.error_description === "string" ? body.error_description : "Token exchange failed.";
     return { ok: false, error: desc };
   }
-  storeTokens(body as { access_token: string; expires_in?: number; refresh_token?: string });
+  storeTokens(body as { access_token: string; expires_in?: number; refresh_token?: string; id_token?: string });
   await fetchUserinfo(body.access_token as string);
   sessionStorage.removeItem(KEYS.verifier);
   sessionStorage.removeItem(KEYS.state);
-  // Fresh sign-in: allow a future silent attempt on the next anonymous visit.
+  // Fresh sign-in: re-enable silent flows again.
   sessionStorage.removeItem(KEYS.autoAttempted);
+  sessionStorage.removeItem(KEYS.signedOut);
   return { ok: true };
 }
 
-/** Refresh the access token if expired/near-expiry. Returns a valid token or null. */
+/**
+ * Renewal model: no refresh tokens. Access tokens live 1h; renewal is a
+ * silent prompt=none re-authorization against the live IdP session (the
+ * mount-time flow and the 401-driven `handleUnauthorized` both use it).
+ * When the device-global sign-out kills the session, nothing outlives it.
+ */
 export async function ensureFreshAccessToken(): Promise<string | null> {
-  const cached = getAccessTokenSync();
-  if (cached) return cached;
-  const refresh = localStorage.getItem(KEYS.refreshToken);
-  if (!refresh) return null;
-  const res = await fetch(OIDC.tokenEndpoint, {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: refresh,
-      client_id: OIDC.clientId,
-    }).toString(),
-  });
-  if (!res.ok) {
-    clearOidcStorage();
-    return null;
-  }
-  const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!body || typeof body.access_token !== "string") {
-    clearOidcStorage();
-    return null;
-  }
-  storeTokens(body as { access_token: string; expires_in?: number; refresh_token?: string });
-  // Keep userinfo fresh after every refresh so role/permission changes propagate.
-  await fetchUserinfo(body.access_token as string).catch(() => null);
-  return body.access_token as string;
+  return getAccessTokenSync();
 }
 
-async function revoke(token: string, hint: "refresh_token" | "access_token") {
+/**
+ * Sign the user out of THIS app only. The IdP session survives, so other
+ * AmazeCC apps keep working and this app can sign straight back in via SSO.
+ * Revocation is verified (the app would otherwise keep working for up to 1h).
+ * Returns whether every presented token was revoked at the IdP.
+ */
+export async function signOutApp(): Promise<{ revoked: boolean }> {
+  const access = localStorage.getItem(KEYS.accessToken);
+  const refresh = localStorage.getItem(KEYS.refreshToken);
+  const results = await Promise.all([
+    access ? revoke(access, "access_token") : Promise.resolve(true),
+    refresh ? revoke(refresh, "refresh_token") : Promise.resolve(true),
+  ]);
+  clearOidcStorage();
+  // Stop silent re-auth until the user explicitly signs in again.
+  sessionStorage.setItem(KEYS.signedOut, "1");
+  sessionStorage.setItem(KEYS.autoAttempted, "1");
+  return { revoked: results.every(Boolean) };
+}
+
+/**
+ * Sign the user out of Amaze ID on THIS DEVICE. Revokes this app's tokens,
+ * drops local state, then sends the browser through the IdP's
+ * RP-Initiated Logout - the device session dies, and with it the
+ * session-bound tokens of EVERY app on this device (via the session-delete
+ * hook). All apps land back on their sign-in cards.
+ */
+export function signOutDevice(): void {
+  const access = localStorage.getItem(KEYS.accessToken);
+  const refresh = localStorage.getItem(KEYS.refreshToken);
+  const idToken = localStorage.getItem(KEYS.idToken);
+  if (access) void revoke(access, "access_token"); // belt - the session kill hook revokes too
+  if (refresh) void revoke(refresh, "refresh_token");
+  clearOidcStorage();
+  sessionStorage.setItem(KEYS.signedOut, "1");
+  sessionStorage.setItem(KEYS.autoAttempted, "1");
+  const params = new URLSearchParams({
+    client_id: OIDC.clientId,
+    post_logout_redirect_uri: `${window.location.origin}/`,
+  });
+  if (idToken) params.set("id_token_hint", idToken); // skips the confirmation interstitial
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- external IdP navigation, not an internal route
+  window.location.assign(`${process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.amazecc.com"}/api/auth/oauth2/end-session?${params.toString()}`);
+}
+
+/**
+ * Called on HTTP 401 from the API: silently re-authorizes through the IdP
+ * (prompt=none) if the user has not explicitly signed out. The page reloads
+ * with fresh tokens; if the IdP session is dead the app lands back on its
+ * sign-in card instead.
+ */
+export function handleUnauthorized(): boolean {
+  if (sessionStorage.getItem(KEYS.signedOut) === "1") return false;
+  if (sessionStorage.getItem(KEYS.autoAttempted) === "1") return false; // one silent hop per page life
+  sessionStorage.setItem(KEYS.autoAttempted, "1");
+  void authorize("none");
+  return true;
+}
+
+/** RFC 7009 revocation - public clients are allowed (200 even for unknown tokens). */
+async function revoke(token: string, hint: "refresh_token" | "access_token"): Promise<boolean> {
   try {
-    await fetch(OIDC.revocationEndpoint, {
+    const res = await fetch(OIDC.revocationEndpoint, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ token, client_id: OIDC.clientId, token_type_hint: hint }).toString(),
     });
+    return res.ok;
   } catch {
-    // Best effort - the provider expires everything within an hour anyway.
+    return false;
   }
-}
-
-/** Sign out: revoke tokens at the IdP, then drop local state. The IdP session stays (SSO). */
-export async function signOutOidc() {
-  const access = localStorage.getItem(KEYS.accessToken);
-  const refresh = localStorage.getItem(KEYS.refreshToken);
-  await Promise.allSettled([access ? revoke(access, "access_token") : Promise.resolve(), refresh ? revoke(refresh, "refresh_token") : Promise.resolve()]);
-  clearOidcStorage();
 }
 
 async function authorize(prompt: "none" | "login" | null) {
@@ -251,6 +289,7 @@ export function signInInteractive() {
 
 /** Silent SSO attempt - only if the IdP session exists. Returns false when it bailed to the button. */
 export function trySilentSignIn(): boolean {
+  if (sessionStorage.getItem(KEYS.signedOut) === "1") return false; // explicit sign-out wins over SSO
   if (sessionStorage.getItem(KEYS.autoAttempted) === "1") return false;
   sessionStorage.setItem(KEYS.autoAttempted, "1");
   void authorize("none");

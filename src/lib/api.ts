@@ -1,4 +1,4 @@
-import { getAccessTokenSync } from "./oauth2";
+import { getAccessTokenSync, handleUnauthorized } from "./oauth2";
 
 // AmazeCC API on Cloudflare Workers (hono.amazecc.com). Serves /api/login (VTOP) and /api/*.
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://hono.amazecc.com";
@@ -28,18 +28,22 @@ export function apiFetch(path: string, init: RequestInit = {}) {
  return fetch(apiUrl(path), {
  ...init,
  headers,
+ }).then((res) => {
+ // Access token expired mid-session: re-authorize silently.
+ if (res.status === 401) handleUnauthorized();
+ return res;
  });
 }
 
 export const fetcher = async (path: string) => {
  const res = await apiFetch(path);
- 
+
  if (!res.ok) {
  const error = new Error('An error occurred while fetching the data.') as any;
  error.info = await res.json().catch(() => ({}));
  error.status = res.status;
  throw error;
  }
- 
+
  return res.json();
 };
