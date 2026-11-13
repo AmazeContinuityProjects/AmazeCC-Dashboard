@@ -3,8 +3,6 @@ title: "Admin workspaces"
 description: "Map the admin portal's content, operations, GoRobo, and system workspaces to their components and backend responsibilities."
 ---
 
-# Admin workspaces
-
 > **In one line:** each workspace is a focused admin tool rendered inside the shared shell; the shell handles navigation while the workspace owns its task-specific UI and requests.
 
 The current workspace map comes from `Main.tsx` (which selects components)

@@ -3,7 +3,7 @@ title: "Admin login and session"
 description: "See how the login form calls the API, where the admin token is stored, how requests reuse it, and what logout clears."
 ---
 
-# Admin login and session
+import AdminTokenWarning from "/snippets/admin-token-warning.mdx";
 
 > **In one line:** the browser sends the credentials to the API once, stores the returned bearer token in local storage, and attaches that token to later API requests.
 
@@ -28,6 +28,8 @@ A bearer token is a credential: whoever possesses it can present it to the
 server as proof of access until the backend rejects or expires it. `apiFetch`
 adds it to the HTTP `Authorization` header as `Bearer <token>`. Never paste
 that header into docs, screenshots, or a public issue.
+
+<AdminTokenWarning />
 
 ## Page refresh and logout
 

@@ -3,8 +3,6 @@ title: "Design system and accessibility"
 description: "Use the existing AmazeCC tokens and components, preserve keyboard and screen-reader access, and find the UI design references."
 ---
 
-# Design system and accessibility
-
 > **In one line:** reuse the project's design tokens and components so new controls feel consistent and stay usable with a keyboard and assistive technology.
 
 The repository's `design/` folder contains contributor guidance for colors,

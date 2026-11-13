@@ -3,8 +3,6 @@ title: "Configuration catalog"
 description: "Documented build-time environment variables and their source files, including which values are public in the browser."
 ---
 
-# Configuration catalog
-
 > **In one line:** the frontend reads a small set of public build-time variables; anything prefixed with `NEXT_PUBLIC_` can appear in the browser bundle.
 
 | Variable | Used by | Purpose |

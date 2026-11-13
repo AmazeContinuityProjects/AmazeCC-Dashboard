@@ -3,8 +3,6 @@ title: "Testing and build"
 description: "Run ESLint, TypeScript checks, Vitest, and the production static build using the same package scripts used by CI."
 ---
 
-# Testing and build
-
 > **In one line:** use lint for style and common mistakes, typecheck for TypeScript mismatches, tests for behavior, and build to catch production bundling/export issues.
 
 ## Available checks

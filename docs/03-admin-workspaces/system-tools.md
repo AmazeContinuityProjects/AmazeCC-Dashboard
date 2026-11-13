@@ -3,8 +3,6 @@ title: "System tools"
 description: "Find the dashboard's user, storage, push, club, cabshare, audit-log, settings, faculty, and fresher-resource screens."
 ---
 
-# System tools
-
 > **In one line:** the System group gathers administrative screens that manage accounts, stored content, notifications, and shared platform data.
 
 The `AdminLayout.tsx` navigation and `Main.tsx` render map are the best index

@@ -3,8 +3,6 @@ title: "Components and state"
 description: "Learn how Main, AdminLayout, and workspace components divide responsibilities and how state changes update the visible screen."
 ---
 
-# Components and state
-
 > **In one line:** a React component returns part of the interface, and state is the remembered value that tells React when that interface needs to change.
 
 ## Component: a reusable UI function

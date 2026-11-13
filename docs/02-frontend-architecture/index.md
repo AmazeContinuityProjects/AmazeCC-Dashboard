@@ -3,8 +3,6 @@ title: "Frontend architecture"
 description: "Understand the Next.js app shell, React state, API client, browser storage, and static export used by the admin portal."
 ---
 
-# Frontend architecture
-
 > **In one line:** Next.js builds the browser app, React components own visible UI state, and `src/lib/api.ts` connects those components to a separately deployed backend.
 
 This project is a browser-first frontend. It uses Next.js App Router to

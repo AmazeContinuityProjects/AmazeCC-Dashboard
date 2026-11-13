@@ -3,8 +3,6 @@ title: "Offline behavior and notifications"
 description: "Understand the Serwist service worker, cache exclusions for API requests, browser push subscription, and notification flows."
 ---
 
-# Offline behavior and notifications
-
 > **In one line:** the app has a service worker for static resources and push events, while protected API data is intentionally excluded from its default runtime cache.
 
 ## Service worker

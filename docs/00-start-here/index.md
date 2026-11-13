@@ -3,8 +3,6 @@ title: "AmazeCC Dashboard: start here"
 description: "Understand what this repository runs, how the browser talks to the AmazeCC API, and where a new developer should begin."
 ---
 
-# AmazeCC Dashboard: start here
-
 > **In one line:** this repository builds the browser interface administrators use to manage AmazeCC content and services; the separate AmazeCC API performs the protected data operations.
 
 The name “Dashboard” can make this repo sound like the student timetable and

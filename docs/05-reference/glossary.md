@@ -3,8 +3,6 @@ title: "Glossary"
 description: "Plain-language definitions of the web, React, API, and admin terms used throughout the AmazeCC Dashboard handbook."
 ---
 
-# Glossary
-
 | Term | Meaning in this handbook |
 |---|---|
 | API | A set of URLs and rules another program can use to request data or actions |

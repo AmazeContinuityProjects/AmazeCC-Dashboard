@@ -3,8 +3,6 @@ title: "Repository map"
 description: "A practical directory guide to the Next.js app, admin workspaces, API client, design references, and CI workflows."
 ---
 
-# Repository map
-
 > **In one line:** start in `src/app/` for URLs, `src/components/custom/` for admin screens, and `src/lib/` for shared browser helpers.
 
 | Path | What belongs there |

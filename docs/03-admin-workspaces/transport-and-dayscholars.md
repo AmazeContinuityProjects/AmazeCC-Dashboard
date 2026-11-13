@@ -3,8 +3,6 @@ title: "Transport and dayscholars"
 description: "Understand the admin transport manager and how it differs from the student-facing bus finder described in older project material."
 ---
 
-# Transport and dayscholars
-
 > **In one line:** the current dashboard contains an admin transport manager; do not assume this repository also contains the historical student bus-finder UI.
 
 The admin transport screen is `src/components/custom/admin/TransportManager.tsx`.

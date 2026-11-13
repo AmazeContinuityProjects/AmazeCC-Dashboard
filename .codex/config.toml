@@ -1,0 +1,7 @@
+
+[mcp_servers.mintlify-admin]
+url = "https://mcp.mintlify.com"
+
+[mcp_servers.mintlify-docs]
+url = "https://mintlify.com/docs/mcp"
+http_headers = { "x-mintlify-toolset" = "knowledge" }

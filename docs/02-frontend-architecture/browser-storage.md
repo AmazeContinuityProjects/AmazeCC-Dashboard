@@ -3,8 +3,6 @@ title: "Browser storage and persistence"
 description: "Learn what this app stores in localStorage, how those values survive reloads, and how to handle browser storage safely."
 ---
 
-# Browser storage and persistence
-
 > **In one line:** React state disappears when the page reloads; browser local storage survives reloads, but it is visible to JavaScript on the same site.
 
 ## React state is temporary

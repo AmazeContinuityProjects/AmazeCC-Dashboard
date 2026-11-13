@@ -3,8 +3,6 @@ title: "Admin portal overview"
 description: "Learn how the dashboard authenticates administrators and organizes its overview, content, GoRobo, and system workspaces."
 ---
 
-# Admin portal overview
-
 > **In one line:** the admin portal is a client-side console whose central `Main` component controls login, the selected workspace, and the data each workspace displays.
 
 The portal has three broad layers:

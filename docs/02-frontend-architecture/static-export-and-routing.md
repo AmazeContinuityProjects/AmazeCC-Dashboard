@@ -3,8 +3,6 @@ title: "Static export and routing"
 description: "Understand the two Next.js pages, static output, client-side navigation, base paths, and why API calls go to another service."
 ---
 
-# Static export and routing
-
 > **In one line:** Next.js organizes the dashboard pages and produces static files; the separate API service handles protected data requests.
 
 ## The two app pages

@@ -3,8 +3,6 @@ title: "Navigation and shortcuts"
 description: "Find the sidebar groups, mobile navigation behavior, active workspace state, command palette, and upload action."
 ---
 
-# Navigation and shortcuts
-
 > **In one line:** `AdminLayout` renders the navigation shell, while `Main` owns the selected workspace and chooses its content.
 
 ## Sidebar groups

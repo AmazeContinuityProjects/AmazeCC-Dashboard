@@ -3,8 +3,6 @@ title: "GoRobo Store workspace"
 description: "Map the GoRobo admin screen to inventory, orders, billing, wallet, bundles, analytics, and its dedicated API helper."
 ---
 
-# GoRobo Store workspace
-
 > **In one line:** the GoRobo admin UI is a set of store operations screens backed by a dedicated typed API helper and permission-gated routes.
 
 The workspace lives under `src/components/custom/admin/gorobo/`. `GoRoboAdmin.tsx`

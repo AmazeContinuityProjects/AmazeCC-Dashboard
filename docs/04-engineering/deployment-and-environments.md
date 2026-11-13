@@ -3,8 +3,6 @@ title: "Deployment and environments"
 description: "Understand public frontend configuration, build-time values, static output, and the dashboard's GitHub Pages workflow."
 ---
 
-# Deployment and environments
-
 > **In one line:** CI builds the Next.js static export, then the deployment workflow publishes `out/`; the frontend still calls the API host configured into that build.
 
 ## Build-time configuration

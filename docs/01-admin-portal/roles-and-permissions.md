@@ -3,8 +3,6 @@ title: "Roles and permissions"
 description: "Understand the superadmin/admin roles, permission-filtered navigation, and why the backend must enforce every protected action."
 ---
 
-# Roles and permissions
-
 > **In one line:** the frontend uses a role and permission list to decide which workspaces to show; only the API can enforce access to data and operations.
 
 After successful sign-in, `Main.tsx` saves a role and permission list and passes

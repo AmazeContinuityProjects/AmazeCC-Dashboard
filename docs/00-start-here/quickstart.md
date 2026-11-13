@@ -3,8 +3,6 @@ title: "Run the admin portal locally"
 description: "Install the dashboard, configure its API address, start the HTTPS development server, and understand common setup failures."
 ---
 
-# Run the admin portal locally
-
 > **In one line:** install Node and pnpm, install dependencies, point the frontend at an API server, then run `pnpm dev` on port 3002.
 
 ## What you need
@@ -17,20 +15,40 @@ description: "Install the dashboard, configure its API address, start the HTTPS 
 
 ## Install and start
 
+<Steps>
+  <Step title="Clone the repository">
+
 ```bash
 git clone https://github.com/AmazeContinuityProjects/AmazeCC-Dashboard.git
 cd AmazeCC-Dashboard
+```
+  </Step>
+  <Step title="Install dependencies">
+
+```bash
 pnpm install
 ```
+  </Step>
+  <Step title="Configure the API address">
 
 Copy `.env.example` to `.env.local` (or `.env`) and set the API base URL. The
 example points to `http://localhost:3005`; change it to the address where your
 API is actually running. The production fallback in `src/lib/api.ts` is
 `https://api.amazecc.com`.
 
-```env
+<CodeGroup>
+
+```env local
 NEXT_PUBLIC_API_BASE=http://localhost:3005
 ```
+
+```env production
+NEXT_PUBLIC_API_BASE=https://api.amazecc.com
+```
+
+</CodeGroup>
+  </Step>
+  <Step title="Start the development server">
 
 Then start the development server:
 
@@ -42,6 +60,8 @@ The script uses Next.js with experimental HTTPS on port **3002**. Open
 `https://localhost:3002`. Your browser may show a local certificate warning;
 that is because the development certificate is not a public website
 certificate.
+  </Step>
+</Steps>
 
 ## Make your first read-only check
 

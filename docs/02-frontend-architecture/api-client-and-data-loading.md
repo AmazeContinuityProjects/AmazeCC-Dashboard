@@ -3,8 +3,6 @@ title: "API client and data loading"
 description: "Trace API_BASE, apiUrl, apiFetch, bearer-token attachment, SWR, JSON parsing, and frontend error handling."
 ---
 
-# API client and data loading
-
 > **In one line:** `src/lib/api.ts` turns a relative API path into a full URL, attaches the saved admin token, sends the HTTP request, and parses JSON for the component.
 
 ## Choose the API host

@@ -3,8 +3,6 @@ title: "Question bank and OCR review"
 description: "Understand the admin interfaces for papers, OCR processing, extracted questions, and publication review."
 ---
 
-# Question bank and OCR review
-
 > **In one line:** admins use the QBank screens to manage paper records, review OCR output, edit questions, and publish approved content through the API.
 
 The dashboard has several related screens rather than one monolithic QBank

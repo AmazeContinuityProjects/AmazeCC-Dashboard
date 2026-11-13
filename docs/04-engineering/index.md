@@ -3,8 +3,6 @@ title: "Engineering and operations"
 description: "Learn the dashboard's design system, PWA and notification behavior, CI checks, static build, and deployment configuration."
 ---
 
-# Engineering and operations
-
 > **In one line:** this section explains the shared UI rules and the path from source files to a static deployment.
 
 The dashboard uses the AmazeUI package, local UI primitives, Tailwind CSS,

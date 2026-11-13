@@ -3,8 +3,6 @@ title: "Follow a request from click to screen"
 description: "Trace the admin overview request through React, apiFetch, HTTP, the API response, and the next render."
 ---
 
-# Follow a request from click to screen
-
 > **In one line:** a component asks for JSON, the API checks and loads it, then React uses the response to render the screen.
 
 This walkthrough follows the admin overview's statistics. It teaches a useful

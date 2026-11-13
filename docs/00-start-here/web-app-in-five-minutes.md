@@ -3,8 +3,6 @@ title: "A web app in five minutes"
 description: "A beginner-friendly bridge from HTML to browsers, servers, React, HTTP requests, JSON, and TypeScript in this repository."
 ---
 
-# A web app in five minutes
-
 > **In one line:** HTML is the page structure; JavaScript makes it interactive; a server answers requests; React updates the page when data changes.
 
 You already know HTML. Think of a web app as two programs cooperating: one
