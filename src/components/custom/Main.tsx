@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { fetcher } from "@/lib/api";
-import { signInInteractive, signOutOidc, getAccessTokenSync, ensureFreshAccessToken, getStoredUser, trySilentSignIn } from "@/lib/oauth2";
+import { signInInteractive, signOutApp, signOutDevice, getAccessTokenSync, ensureFreshAccessToken, getStoredUser, trySilentSignIn } from "@/lib/oauth2";
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { Button } from "@/components/custom/admin/AdminUI";
@@ -34,6 +34,7 @@ export default function LoginPage() {
   const [activeSubTab, setActiveSubTab] = useState('queue');
   const [userRole, setUserRole] = useState<'superadmin' | 'admin' | 'user'>('user');
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [signOutMenuOpen, setSignOutMenuOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,13 +84,21 @@ export default function LoginPage() {
   vitolSubscribers: statsData.data.vitolSubscribers,
   } : { queueCount: 0, busRoutes: 0, totalPapers: 0, approvedPapers: 0, pendingReview: 0, failedOCR: 0, activeUsers: 0, vitolSubscribers: 0 };
 
-  const handleLogout = () => {
-    // Revoke the OAuth tokens at the IdP, then drop local state. The IdP
-    // session stays alive so the next sign-in is a silent SSO hop.
-    signOutOidc().finally(() => {
+  const handleLogout = () => setSignOutMenuOpen(true);
+
+  const handleAppSignOut = () => {
+    // Revokes this app's tokens at the IdP (verified). IdP session stays.
+    signOutApp().finally(() => {
+      setSignOutMenuOpen(false);
       setIsAuthenticated(false);
       setActiveTab("dashboard");
     });
+  };
+
+  const handleDeviceSignOut = () => {
+    // Revokes this app's tokens, then ends the IdP session - every AmazeCC
+    // app on this device signs out (via the IdP's RP-Initiated Logout).
+    signOutDevice();
   };
 
   if (isCheckingAuth) {
@@ -227,6 +236,49 @@ export default function LoginPage() {
   </div>
   )}
   </AdminLayout>
+
+  {signOutMenuOpen && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <button
+    type="button"
+    aria-label="Cancel"
+    onClick={() => setSignOutMenuOpen(false)}
+    className="absolute inset-0 bg-background/70 backdrop-blur-sm cursor-default"
+    />
+    <div className="relative w-full max-w-md bg-card border border-border/60 rounded-3xl shadow-[0_24px_60px_rgba(0,0,0,0.35)] p-6 space-y-5 animate-fadeIn">
+    <div className="space-y-1.5">
+      <h3 className="text-xl font-black text-foreground tracking-tight font-display">Sign out</h3>
+      <p className="text-sm text-muted-foreground">Choose how you want to sign out.</p>
+    </div>
+
+    <button
+      type="button"
+      onClick={handleAppSignOut}
+      className="w-full text-left rounded-2xl border border-border/60 bg-muted/40 hover:bg-muted/70 transition-colors p-4 space-y-1 cursor-pointer"
+    >
+      <span className="block text-sm font-bold text-foreground">Sign out of Admin Portal</span>
+      <span className="block text-xs text-muted-foreground leading-relaxed">Revokes this app&apos;s tokens at Amaze ID. Your Amaze ID stays signed in for other AmazeCC apps.</span>
+    </button>
+
+    <button
+      type="button"
+      onClick={handleDeviceSignOut}
+      className="w-full text-left rounded-2xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-colors p-4 space-y-1 cursor-pointer"
+    >
+      <span className="block text-sm font-bold text-destructive">Sign out of Amaze ID on this device</span>
+      <span className="block text-xs text-muted-foreground leading-relaxed">Ends your Amaze ID session at auth.amazecc.com. Every AmazeCC app on this device signs out immediately - revokes all session tokens.</span>
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setSignOutMenuOpen(false)}
+      className="w-full h-10 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+    >
+      Cancel
+    </button>
+    </div>
+  </div>
+  )}
   </div>
   );
 }
