@@ -1,0 +1,142 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "AmazeCC Dashboard",
+  "colors": {
+    "primary": "#6366F1"
+  },
+  "contextual": {
+    "options": ["copy", "view", "mcp", "cursor", "vscode"]
+  },
+  "markdown": {
+    "instructions": "Explain the Dashboard code to a junior developer. Treat source files as authoritative, name the source path, describe relevant TypeScript and React syntax, and distinguish observed behavior from assumptions. Do not invent backend behavior."
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Start here",
+        "icon": "rocket",
+        "expanded": true,
+        "pages": [
+          {
+            "group": "Start here",
+            "root": "00-start-here/index",
+            "pages": [
+              "00-start-here/web-app-in-five-minutes",
+              "00-start-here/quickstart",
+              "00-start-here/request-to-screen"
+            ],
+            "expanded": true
+          }
+        ]
+      },
+      {
+        "group": "Admin portal",
+        "icon": "shield-check",
+        "expanded": true,
+        "pages": [
+          {
+            "group": "Admin portal",
+            "root": "01-admin-portal/index",
+            "pages": [
+              "01-admin-portal/login-and-session",
+              "01-admin-portal/roles-and-permissions",
+              "01-admin-portal/navigation-and-shortcuts"
+            ]
+          }
+        ]
+      },
+      {
+        "group": "Frontend architecture",
+        "icon": "layers",
+        "expanded": true,
+        "pages": [
+          {
+            "group": "Frontend architecture",
+            "root": "02-frontend-architecture/index",
+            "pages": [
+              "02-frontend-architecture/component-and-state-model",
+              "02-frontend-architecture/api-client-and-data-loading",
+              "02-frontend-architecture/browser-storage",
+              "02-frontend-architecture/static-export-and-routing"
+            ]
+          }
+        ]
+      },
+      {
+        "group": "Admin workspaces",
+        "icon": "layout-dashboard",
+        "expanded": true,
+        "pages": [
+          {
+            "group": "Admin workspaces",
+            "root": "03-admin-workspaces/index",
+            "pages": [
+              "03-admin-workspaces/question-bank-and-ocr",
+              "03-admin-workspaces/gorobo-store",
+              "03-admin-workspaces/transport-and-dayscholars",
+              "03-admin-workspaces/system-tools"
+            ]
+          }
+        ]
+      },
+      {
+        "group": "Engineering and operations",
+        "icon": "wrench",
+        "expanded": true,
+        "pages": [
+          {
+            "group": "Engineering and operations",
+            "root": "04-engineering/index",
+            "pages": [
+              "04-engineering/design-system-and-accessibility",
+              "04-engineering/offline-and-notifications",
+              "04-engineering/testing-and-build",
+              "04-engineering/deployment-and-environments"
+            ]
+          }
+        ]
+      },
+      {
+        "group": "Reference",
+        "icon": "book",
+        "expanded": true,
+        "pages": [
+          {
+            "group": "Reference",
+            "root": "05-reference/index",
+            "pages": [
+              "05-reference/repository-map",
+              "05-reference/configuration-catalog",
+              "05-reference/glossary"
+            ]
+          }
+        ]
+      },
+      {
+        "group": "Code tours",
+        "icon": "code",
+        "expanded": true,
+        "pages": [
+          {
+            "group": "Read the code",
+            "root": "06-code-tour/index",
+            "pages": [
+              "06-code-tour/typescript-react-syntax",
+              "06-code-tour/main-login-and-shell",
+              "06-code-tour/admin-layout-line-by-line",
+              "06-code-tour/api-client-line-by-line",
+              "06-code-tour/admin-overview-data-flow",
+              "06-code-tour/shared-admin-ui",
+              "06-code-tour/content-workspaces-code-tour",
+              "06-code-tour/gorobo-code-tour",
+              "06-code-tour/operations-code-tour",
+              "06-code-tour/workspace-module-catalog",
+              "06-code-tour/mintlify-and-ai-tools"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
