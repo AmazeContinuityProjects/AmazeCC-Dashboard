@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { apiFetch, fetcher, AUTH_BASE } from "@/lib/api";
+import { fetcher, AUTH_BASE } from "@/lib/api";
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { Input, Button } from "@/components/custom/admin/AdminUI";
