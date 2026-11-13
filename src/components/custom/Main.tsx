@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { fetcher, AUTH_BASE } from "@/lib/api";
+import { fetcher } from "@/lib/api";
+import { signInInteractive, signOutOidc, getAccessTokenSync, ensureFreshAccessToken, getStoredUser, trySilentSignIn } from "@/lib/oauth2";
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
-import { Input, Button } from "@/components/custom/admin/AdminUI";
+import { Button } from "@/components/custom/admin/AdminUI";
 
 const AdminLayout = dynamic(() => import('@/components/custom/admin/AdminLayout'), { ssr: false });
 const AdminLandingPage = dynamic(() => import('@/components/custom/admin/AdminLandingPage'), { ssr: false });
@@ -24,37 +25,46 @@ const CabShareAdminTab = dynamic(() => import('@/components/custom/admin/CabShar
 const TransportManager = dynamic(() => import('@/components/custom/admin/TransportManager'), { ssr: false });
 const GoRoboAdmin = dynamic(() => import('@/components/custom/admin/gorobo/GoRoboAdmin'), { ssr: false });
 
+const ALL_SECTIONS = ["dashboard","qbank","buses","transport","gorobo","clubs","cabshare","fresher-resources","faculty-directories","push","settings","storage","users","ocr","migrate","audit-logs"];
+
 export default function LoginPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubTab, setActiveSubTab] = useState('queue');
   const [userRole, setUserRole] = useState<'superadmin' | 'admin' | 'user'>('user');
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
 
   useEffect(() => {
-  const token = localStorage.getItem("admin_token");
-  const storedRole = localStorage.getItem("admin_role") as 'superadmin' | 'admin' | null;
-  const storedPermissions = localStorage.getItem("admin_permissions");
-  
-  if (token) {
-  setIsAuthenticated(true);
-  if (storedRole) {
-  setUserRole(storedRole);
-  }
-  if (storedPermissions) {
-  try {
-  setUserPermissions(JSON.parse(storedPermissions));
-  } catch (e) {
-  console.error("Failed to parse stored permissions:", e);
-  }
-  }
-  }
-  setIsCheckingAuth(false);
+    let cancelled = false;
+    (async () => {
+      const hasAnyCredential =
+        !!getAccessTokenSync() ||
+        (typeof window !== "undefined" && !!localStorage.getItem("amaze_oidc_refresh_token"));
+
+      if (hasAnyCredential) {
+        await ensureFreshAccessToken();
+        const stored = getStoredUser();
+        if (stored && !cancelled) {
+          setUserRole(stored.role);
+          setUserPermissions(stored.role === "superadmin" ? ALL_SECTIONS : stored.permissions);
+          setIsAuthenticated(true);
+          setIsCheckingAuth(false);
+          return;
+        }
+        // Refresh failed and was cleared - show the sign-in button.
+      } else if (trySilentSignIn()) {
+        // Signed in at auth.amazecc.com? The browser is being sent through the
+        // authorize hop (prompt=none); this component unmounts on redirect.
+        return;
+      }
+      if (!cancelled) setIsCheckingAuth(false);
+    })().catch(() => {
+      if (!cancelled) setIsCheckingAuth(false);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const { data: statsData, error: statsError } = useSWR(isAuthenticated ? '/api/admin/stats' : null, fetcher, {
@@ -73,54 +83,13 @@ export default function LoginPage() {
   vitolSubscribers: statsData.data.vitolSubscribers,
   } : { queueCount: 0, busRoutes: 0, totalPapers: 0, approvedPapers: 0, pendingReview: 0, failedOCR: 0, activeUsers: 0, vitolSubscribers: 0 };
 
-  const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsLoading(true);
-  setError('');
-
-  try {
-  // Amaze ID sign-in. The API re-checks the session against the shared D1 on every request.
-  const res = await fetch(`${AUTH_BASE}/api/auth/sign-in/email`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ email: username, password })
-  });
-  const data = await res.json();
-
-  if (res.ok && data.token) {
-  // Amaze ID RBAC: role "superadmin" gets all sections; "admin" gets the
-  // sections listed in their `permissions` field (comma-separated in D1).
-  const ALL_SECTIONS = ["dashboard","qbank","buses","transport","gorobo","clubs","cabshare","fresher-resources","faculty-directories","push","settings","storage","users","ocr","migrate","audit-logs"];
-  const rawRole = data.user?.role;
-  const role = rawRole === 'superadmin' ? 'superadmin' : rawRole === 'admin' ? 'admin' : 'user';
-  const perms: string[] = role === 'superadmin'
-    ? ALL_SECTIONS
-    : (typeof data.user?.permissions === 'string'
-        ? data.user.permissions.split(',').map((p: string) => p.trim()).filter(Boolean)
-        : Array.isArray(data.user?.permissions) ? data.user.permissions : []);
-  localStorage.setItem("admin_token", data.token);
-  localStorage.setItem("admin_role", role);
-  localStorage.setItem('admin_permissions', JSON.stringify(perms));
-  setUserRole(role);
-  setUserPermissions(perms);
-  setIsAuthenticated(true);
-  } else {
-  setError(data.error || data.message || "Invalid email or password");
-  }
-  } catch (err) {
-  setError("Failed to connect to authentication server");
-  } finally {
-  setIsLoading(false);
-  }
-  };
-
   const handleLogout = () => {
-  fetch(`${AUTH_BASE}/api/auth/sign-out`, { method: "POST" }).catch(() => {});
-  localStorage.removeItem("admin_token");
-  localStorage.removeItem("admin_role");
-  localStorage.removeItem("admin_permissions");
-  setIsAuthenticated(false);
-  setActiveTab("dashboard");
+    // Revoke the OAuth tokens at the IdP, then drop local state. The IdP
+    // session stays alive so the next sign-in is a silent SSO hop.
+    signOutOidc().finally(() => {
+      setIsAuthenticated(false);
+      setActiveTab("dashboard");
+    });
   };
 
   if (isCheckingAuth) {
@@ -138,50 +107,24 @@ export default function LoginPage() {
   <div className="text-center space-y-2">
   <img src="/logo.png" alt="AmazeCC Logo" className="w-16 h-16 mx-auto mb-4 object-contain drop-shadow-md" />
   <h2 className="text-2xl font-black text-foreground tracking-tight font-display">Admin Portal</h2>
-  <p className="text-sm text-muted-foreground">Enter your credentials to access the admin dashboard</p>
+  <p className="text-sm text-muted-foreground">Sign in with your Amaze ID to continue</p>
   </div>
 
-  <form onSubmit={handleLogin} className="space-y-4">
-  <div>
-  <label className="block text-sm font-medium text-muted-foreground mb-2">Email</label>
-  <Input
-  type="email"
-  name="email"
-  autoComplete="username"
-  value={username}
-  onChange={(e: any) => setUsername(e.target.value)}
-  className="w-full bg-background/80 backdrop-blur-xl"
-  placeholder="Enter your Amaze ID email"
-  required
-  />
-  </div>
-
-  <div>
-  <label className="block text-sm font-medium text-muted-foreground mb-2">Password</label>
-  <Input
-  type="password"
-  value={password}
-  onChange={(e: any) => setPassword(e.target.value)}
-  className="w-full bg-background/80 backdrop-blur-xl"
-  placeholder="••••••••"
-  required
-  />
-  </div>
-
-  {error && (
-  <div className="p-3 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl text-sm text-center backdrop-blur-xl">
-  {error}
-  </div>
-  )}
-
-  <Button
-  type="submit"
-  disabled={isLoading}
-  className="w-full"
+  <button
+  type="button"
+  onClick={() => signInInteractive()}
+  className="w-full h-12 rounded-xl font-semibold text-sm bg-amber-400 hover:bg-amber-300 text-amber-950 transition-colors flex items-center justify-center gap-2"
   >
-  {isLoading ? 'Authenticating...' : 'Login'}
-  </Button>
-  </form>
+  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M4 12a8 8 0 0 1 16 0"/><path d="M2 12a10 10 0 0 1 20 0"/></svg>
+  Sign in with Amaze ID
+  </button>
+
+  <p className="text-xs text-muted-foreground text-center leading-relaxed">
+  One Amaze ID for every AmazeCC app.{' '}
+  <a href="https://auth.amazecc.com/sign-up" target="_blank" rel="noreferrer" className="text-amber-600 hover:underline font-medium">
+  Create an account
+  </a>
+  </p>
   </div>
   </div>
   );
