@@ -1,0 +1,25 @@
+# Rebuild the Mintlify aggregate as soon as dashboard handbook pages change.
+# DOCS_DISPATCH_TOKEN is a repo secret with permission to dispatch an event to
+# AmazeContinuityProjects/docs.
+name: Notify docs repo
+
+on:
+  push:
+    branches: [main]
+    paths: ["docs/**"]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch docs-updated to the docs repo
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "DOCS_DISPATCH_TOKEN not set - skipping docs-updated dispatch"
+            exit 0
+          fi
+          gh api repos/AmazeContinuityProjects/docs/dispatches -f event_type=docs-updated
